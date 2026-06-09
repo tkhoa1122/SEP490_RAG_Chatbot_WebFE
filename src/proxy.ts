@@ -11,7 +11,7 @@ const ADMIN_ROUTES = ["/admin"];
 // Các route không cần xử lý (Next.js internals, static files)
 const BYPASS_PREFIXES = ["/_next", "/api", "/favicon.ico", "/public"];
 
-export function middleware(request: NextRequest) {
+export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Bỏ qua static files và API routes
