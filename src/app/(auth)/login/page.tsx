@@ -191,7 +191,7 @@ function AvatarDropzone({
         onClick={() => !value && inputRef.current?.click()}
         className={cn(
           "relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all",
-          "min-h-[140px] overflow-hidden bg-slate-50",
+          "min-h-35 overflow-hidden bg-slate-50",
           dragging
             ? "border-[#A8E6CF] bg-[#A8E6CF]/10"
             : value
@@ -202,7 +202,7 @@ function AvatarDropzone({
         {value && preview ? (
           <div className="relative h-full w-full">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={preview} alt="Preview" className="h-[138px] w-full object-cover" />
+            <img src={preview} alt="Preview" className="h-34.5 w-full object-cover" />
             <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity hover:opacity-100">
               <button
                 type="button"
