@@ -7,7 +7,6 @@ import { NextRequest, NextResponse } from "next/server";
 // ─── Route patterns ──────────────────────────────────────────────────────────
 const PUBLIC_ROUTES = ["/login", "/register", "/forgot-password"];
 const ADMIN_ROUTES = ["/admin"];
-const BUSINESS_ROUTES = ["/business"];
 
 // Các route không cần xử lý (Next.js internals, static files)
 const BYPASS_PREFIXES = ["/_next", "/api", "/favicon.ico", "/public"];
@@ -22,17 +21,18 @@ export function middleware(request: NextRequest) {
 
   const token = request.cookies.get("auth_token")?.value;
   const userRole = request.cookies.get("user_role")?.value;
+  const tenantId = request.cookies.get("tenant_id")?.value || "eco-fashion"; // Mock default tenant
 
   // ── (auth) routes: đã đăng nhập → redirect về dashboard ──────────────────
   if (PUBLIC_ROUTES.some((r) => pathname.startsWith(r))) {
     if (token) {
-      const dashboardUrl = getDashboardUrl(userRole);
+      const dashboardUrl = getDashboardUrl(userRole, tenantId);
       return NextResponse.redirect(new URL(dashboardUrl, request.url));
     }
     return NextResponse.next();
   }
 
-  // ── (dashboard)/admin: bắt buộc SYSTEM_ADMIN ─────────────────────────────
+  // ── /admin: bắt buộc SYSTEM_ADMIN ─────────────────────────────
   if (ADMIN_ROUTES.some((r) => pathname.startsWith(r))) {
     if (!token) {
       return redirectToLogin(request, "NOT_AUTHENTICATED");
@@ -43,8 +43,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // ── (dashboard)/business: bắt buộc BUSINESS_OWNER hoặc CATALOG_MARKETING ─
-  if (BUSINESS_ROUTES.some((r) => pathname.startsWith(r))) {
+  // ── /[tenant_id]/dashboard: bắt buộc BUSINESS_OWNER hoặc CATALOG_MARKETING ─
+  const isDashboardRoute = /^\/[^/]+\/dashboard(\/.*)?$/.test(pathname);
+  if (isDashboardRoute) {
     if (!token) {
       return redirectToLogin(request, "NOT_AUTHENTICATED");
     }
@@ -55,8 +56,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // ── (chat)/[tenant_id]: public — middleware không chặn, layout sẽ validate ─
-  // tenant_id validation được xử lý bởi CheckTenantUseCase trong layout.tsx
+  // ── /[tenant_id]: public — middleware không chặn, layout sẽ validate ─
   return NextResponse.next();
 }
 
@@ -68,11 +68,11 @@ function redirectToLogin(request: NextRequest, reason: string): NextResponse {
   return NextResponse.redirect(loginUrl);
 }
 
-function getDashboardUrl(role?: string): string {
+function getDashboardUrl(role?: string, tenantId?: string): string {
   switch (role) {
     case "SYSTEM_ADMIN": return "/admin";
     case "BUSINESS_OWNER":
-    case "CATALOG_MARKETING": return "/business";
+    case "CATALOG_MARKETING": return `/${tenantId}/dashboard`;
     default: return "/login";
   }
 }

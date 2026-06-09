@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { UserRole } from "@/domain/entities/User";
 import type { Metadata } from "next";
+import { AdminLayoutShell } from "@/components/dashboard/AdminLayoutShell";
 
 export const metadata: Metadata = {
   title: { default: "Admin", template: "%s | Admin Panel" },
@@ -27,26 +28,5 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect("/403");
   }
 
-  return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <aside className="hidden w-64 shrink-0 border-r bg-slate-950 text-slate-100 md:flex md:flex-col">
-        <div className="flex h-16 items-center border-b border-slate-800 px-6">
-          <span className="text-sm font-semibold uppercase tracking-widest text-slate-400">
-            System Admin
-          </span>
-        </div>
-        <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-          {/* Admin-only nav items */}
-        </nav>
-      </aside>
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex h-16 shrink-0 items-center justify-between border-b bg-slate-950 px-6">
-          <span className="text-sm font-medium text-slate-400">Admin Panel</span>
-        </header>
-        <main className="flex-1 overflow-auto bg-slate-50 p-6 dark:bg-slate-900">
-          {children}
-        </main>
-      </div>
-    </div>
-  );
+  return <AdminLayoutShell>{children}</AdminLayoutShell>;
 }
