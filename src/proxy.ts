@@ -23,11 +23,11 @@ export default function proxy(request: NextRequest) {
   const userRole = request.cookies.get("user_role")?.value;
   const tenantId = request.cookies.get("tenant_id")?.value || "eco-fashion"; // Mock default tenant
 
-  // ── (auth) routes: đã đăng nhập → redirect về dashboard ──────────────────
+  // ── (auth) routes: đã đăng nhập → redirect về business ──────────────────
   if (PUBLIC_ROUTES.some((r) => pathname.startsWith(r))) {
     if (token) {
-      const dashboardUrl = getDashboardUrl(userRole, tenantId);
-      return NextResponse.redirect(new URL(dashboardUrl, request.url));
+      const businessUrl = getBusinessUrl(userRole, tenantId);
+      return NextResponse.redirect(new URL(businessUrl, request.url));
     }
     return NextResponse.next();
   }
@@ -43,9 +43,9 @@ export default function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // ── /[tenant_id]/dashboard: bắt buộc BUSINESS_OWNER hoặc CATALOG_MARKETING ─
-  const isDashboardRoute = /^\/[^/]+\/dashboard(\/.*)?$/.test(pathname);
-  if (isDashboardRoute) {
+  // ── /[tenant_id]/business: bắt buộc BUSINESS_OWNER hoặc CATALOG_MARKETING ─
+  const isBusinessRoute = /^\/[^/]+\/business(\/.*)?$/.test(pathname);
+  if (isBusinessRoute) {
     if (!token) {
       return redirectToLogin(request, "NOT_AUTHENTICATED");
     }
@@ -68,11 +68,11 @@ function redirectToLogin(request: NextRequest, reason: string): NextResponse {
   return NextResponse.redirect(loginUrl);
 }
 
-function getDashboardUrl(role?: string, tenantId?: string): string {
+function getBusinessUrl(role?: string, tenantId?: string): string {
   switch (role) {
     case "SYSTEM_ADMIN": return "/admin";
     case "BUSINESS_OWNER":
-    case "CATALOG_MARKETING": return `/${tenantId}/dashboard`;
+    case "CATALOG_MARKETING": return `/${tenantId}/business`;
     default: return "/login";
   }
 }
