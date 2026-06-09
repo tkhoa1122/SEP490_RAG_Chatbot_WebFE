@@ -132,14 +132,14 @@ export default function ProductCreatePage() {
             {/* Breadcrumb + Title */}
             <div className="flex items-center gap-3">
               <Link
-                href={`/${tenantId}/dashboard/products`}
+                href={`/${tenantId}/business/products`}
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 <ArrowLeft className="h-4 w-4" />
               </Link>
               <div>
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Link href={`/${tenantId}/dashboard/products`} className="hover:text-foreground">
+                  <Link href={`/${tenantId}/business/products`} className="hover:text-foreground">
                     Sản phẩm
                   </Link>
                   <ChevronRight className="h-3 w-3" />
@@ -154,7 +154,7 @@ export default function ProductCreatePage() {
             {/* Action Buttons */}
             <div className="flex items-center gap-2">
               <Link
-                href={`/${tenantId}/dashboard/products`}
+                href={`/${tenantId}/business/products`}
                 className={cn(
                   "inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-background px-4 text-sm font-medium",
                   "text-foreground transition-colors hover:bg-muted"
@@ -250,7 +250,7 @@ export default function ProductCreatePage() {
                     </div>
                   </div>
                   {attributes.length > 0 && (
-                    <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-amber-500/15 px-1.5 text-[11px] font-bold text-amber-600">
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500/15 px-1.5 text-[11px] font-bold text-amber-600">
                       {attributes.length}
                     </span>
                   )}
@@ -291,7 +291,7 @@ export default function ProductCreatePage() {
                     </div>
                   </div>
                   {variants.length > 0 && (
-                    <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-violet-500/15 px-1.5 text-[11px] font-bold text-violet-600">
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-violet-500/15 px-1.5 text-[11px] font-bold text-violet-600">
                       {variants.length}
                     </span>
                   )}

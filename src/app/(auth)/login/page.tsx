@@ -349,7 +349,7 @@ export default function LoginPage() {
     if (isFirstLogin) {
       setStep(2);
     } else {
-      router.push("/eco-fashion/dashboard");
+      router.push("/eco-fashion/business");
     }
   };
 
@@ -394,7 +394,7 @@ export default function LoginPage() {
     await new Promise((r) => setTimeout(r, 1500));
     setProfileLoading(false);
     setStep(4);
-    setTimeout(() => router.push("/eco-fashion/dashboard"), 2500);
+    setTimeout(() => router.push("/eco-fashion/business"), 2500);
   };
 
   // ── Form Input classes
