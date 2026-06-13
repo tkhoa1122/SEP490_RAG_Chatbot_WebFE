@@ -70,3 +70,21 @@ type FooStore = FooState & FooActions;
 - `tenant_id` lấy từ URL params (`/[tenant_id]/page.tsx`)
 - Mọi API request tự động đính kèm `X-Tenant-ID` header qua `axiosInstance` interceptor
 - Tenant config lưu trong `useTenantSlice`
+
+## Tailwind CSS Rules (v3 & v4 Best Practices)
+1. **Tránh dùng Arbitrary Spacing bằng ngoặc vuông (`[]`) nếu có thể:**
+   - Khi cần dùng px, v4 hỗ trợ viết trực tiếp KHÔNG cần ngoặc vuông.
+   - **Đúng**: `w-5`, `h-34.5`, `w-288.75`, `text-11px`, `text-10px`, `min-w-5`
+   - **Sai**: `w-[20px]`, `h-[138px]`, `w-[72.1875rem]`, `text-[11px]`, `text-[10px]`, `min-w-[20px]`
+2. **Gradient Utilities Mới:**
+   - Từ v4, `bg-gradient-to-*` được chuyển thành `bg-linear-to-*`.
+   - **Đúng**: `bg-linear-to-t`, `bg-linear-to-tr`
+   - **Sai**: `bg-gradient-to-t`, `bg-gradient-to-tr`
+3. **Các Class Rút Gọn (Deprecated Utilities):**
+   - Không sử dụng `flex-shrink` hay `flex-grow` (bị deprecated).
+   - **Đúng**: `shrink-0`, `shrink`, `grow-0`, `grow`
+   - **Sai**: `flex-shrink-0`, `flex-shrink`, `flex-grow-0`, `flex-grow`
+4. **Aspect Ratio:**
+   - Tránh dùng ngoặc vuông cho aspect ratio tuỳ chỉnh nếu nó chia được.
+   - **Đúng**: `aspect-1155/678`, `aspect-3/4`
+   - **Sai**: `aspect-[1155/678]`, `aspect-[3/4]`

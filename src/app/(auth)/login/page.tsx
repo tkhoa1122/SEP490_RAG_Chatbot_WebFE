@@ -19,8 +19,9 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
+import authAPI from "@/infrastructure/api/authAPI";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -191,7 +192,7 @@ function AvatarDropzone({
         onClick={() => !value && inputRef.current?.click()}
         className={cn(
           "relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all",
-          "min-h-[140px] overflow-hidden bg-slate-50",
+          "min-h-35 overflow-hidden bg-slate-50",
           dragging
             ? "border-[#A8E6CF] bg-[#A8E6CF]/10"
             : value
@@ -202,7 +203,7 @@ function AvatarDropzone({
         {value && preview ? (
           <div className="relative h-full w-full">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={preview} alt="Preview" className="h-[138px] w-full object-cover" />
+            <img src={preview} alt="Preview" className="h-34.5 w-full object-cover" />
             <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity hover:opacity-100">
               <button
                 type="button"
@@ -341,15 +342,29 @@ export default function LoginPage() {
 
     setLoginErrors({});
     setLoginLoading(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    setLoginLoading(false);
 
-    // Simulate first-login detection
-    const isFirstLogin = loginForm.password === "temp123";
-    if (isFirstLogin) {
-      setStep(2);
-    } else {
-      router.push("/eco-fashion/dashboard");
+    try {
+      // ── Gọi API thật: POST /auth/login ─────────────────────────────────
+      const res = await authAPI.login({
+        email: loginForm.email,
+        password: loginForm.password,
+      });
+
+      if (res.data?.token) {
+        // Đăng nhập thành công → redirect về trang chủ cửa hàng
+        // (token đã được authAPI.login lưu vào localStorage + cookie)
+        router.push("/eco-fashion");
+      } else {
+        setLoginErrors({ password: res.message || "Đăng nhập thất bại." });
+      }
+    } catch (err: any) {
+      // Xử lý lỗi từ BE (sai email/mật khẩu, account không tồn tại...)
+      const msg =
+        err?.response?.data?.message ||
+        "Sai email hoặc mật khẩu. Vui lòng thử lại.";
+      setLoginErrors({ password: msg });
+    } finally {
+      setLoginLoading(false);
     }
   };
 
@@ -394,7 +409,7 @@ export default function LoginPage() {
     await new Promise((r) => setTimeout(r, 1500));
     setProfileLoading(false);
     setStep(4);
-    setTimeout(() => router.push("/eco-fashion/dashboard"), 2500);
+    setTimeout(() => router.push("/eco-fashion/business"), 2500);
   };
 
   // ── Form Input classes
