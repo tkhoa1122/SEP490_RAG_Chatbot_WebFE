@@ -110,9 +110,7 @@ export default function StorefrontPage() {
             variantId: firstVariant?.id ?? 0,
             stockQuantity: firstVariant?.stockQuantity ?? 0,
           };
-        })
-        // Chỉ hiển thị sản phẩm có variant
-        .filter((p) => p.variantId !== 0);
+        });
 
       setProducts(productCards);
     } catch (err) {
