@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import {
   ArrowLeft,
   ShoppingBag,
@@ -21,12 +22,10 @@ import { StatusEnum } from "@/types/api";
 const formatPrice = (price: number) =>
   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
 
-export default function ProductDetailPage({
-  params,
-}: {
-  params: { tenant_id: string; productId: string };
-}) {
-  const { tenant_id: tenantId, productId } = params;
+export default function ProductDetailPage() {
+  const params = useParams();
+  const tenantId = params.tenant_id as string;
+  const productId = params.productId as string;
   const productIdNum = parseInt(productId, 10);
 
   const [product, setProduct] = useState<ProductResponse | null>(null);
