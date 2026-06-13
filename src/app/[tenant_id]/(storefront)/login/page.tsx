@@ -82,7 +82,7 @@ export default function BuyerAuthPage() {
       {/* ── Left Panel: Lookbook Image (Hidden on Mobile) ── */}
       <div className="relative hidden w-1/2 overflow-hidden lg:block">
         <div className="absolute inset-0 bg-[#A8E6CF]/20 mix-blend-multiply z-10" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#2c5243]/80 via-transparent to-transparent z-10" />
+        <div className="absolute inset-0 bg-linear-to-t from-[#2c5243]/80 via-transparent to-transparent z-10" />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=1200"
@@ -201,7 +201,7 @@ export default function BuyerAuthPage() {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full rounded-xl bg-[#A8E6CF] py-3.5 text-sm font-bold text-[#1c362b] transition-all hover:bg-[#97d0ba] hover:shadow-md active:scale-[0.98] disabled:opacity-70 flex justify-center items-center gap-2"
+                    className="w-full rounded-xl bg-[#A8E6CF] py-3.5 text-sm font-bold text-[#1c362b] transition-all hover:bg-[#97d0ba] hover:shadow-md active:scale-98 disabled:opacity-70 flex justify-center items-center gap-2"
                   >
                     {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Đăng nhập"}
                   </button>
@@ -310,7 +310,7 @@ export default function BuyerAuthPage() {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full rounded-xl bg-[#A8E6CF] py-3.5 text-sm font-bold text-[#1c362b] transition-all hover:bg-[#97d0ba] hover:shadow-md active:scale-[0.98] disabled:opacity-70 flex justify-center items-center gap-2"
+                    className="w-full rounded-xl bg-[#A8E6CF] py-3.5 text-sm font-bold text-[#1c362b] transition-all hover:bg-[#97d0ba] hover:shadow-md active:scale-98 disabled:opacity-70 flex justify-center items-center gap-2"
                   >
                     {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Tạo tài khoản"}
                   </button>
