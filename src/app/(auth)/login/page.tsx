@@ -19,8 +19,9 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
+import authAPI from "@/infrastructure/api/authAPI";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -341,15 +342,29 @@ export default function LoginPage() {
 
     setLoginErrors({});
     setLoginLoading(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    setLoginLoading(false);
 
-    // Simulate first-login detection
-    const isFirstLogin = loginForm.password === "temp123";
-    if (isFirstLogin) {
-      setStep(2);
-    } else {
-      router.push("/eco-fashion/business");
+    try {
+      // ── Gọi API thật: POST /auth/login ─────────────────────────────────
+      const res = await authAPI.login({
+        email: loginForm.email,
+        password: loginForm.password,
+      });
+
+      if (res.data?.token) {
+        // Đăng nhập thành công → redirect về trang chủ cửa hàng
+        // (token đã được authAPI.login lưu vào localStorage + cookie)
+        router.push("/eco-fashion");
+      } else {
+        setLoginErrors({ password: res.message || "Đăng nhập thất bại." });
+      }
+    } catch (err: any) {
+      // Xử lý lỗi từ BE (sai email/mật khẩu, account không tồn tại...)
+      const msg =
+        err?.response?.data?.message ||
+        "Sai email hoặc mật khẩu. Vui lòng thử lại.";
+      setLoginErrors({ password: msg });
+    } finally {
+      setLoginLoading(false);
     }
   };
 
