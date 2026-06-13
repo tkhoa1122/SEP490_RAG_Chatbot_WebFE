@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { ShoppingBag, Facebook, Instagram, Youtube, Phone, Mail, MapPin } from "lucide-react";
+import { ShoppingBag, Globe, Camera, Video, Phone, Mail, MapPin } from "lucide-react";
 
 export function Footer({ tenantId }: { tenantId: string }) {
   return (
@@ -63,13 +63,13 @@ export function Footer({ tenantId }: { tenantId: string }) {
             <h3 className="text-sm font-bold text-gray-900 mb-4 uppercase tracking-wider">Kết nối</h3>
             <div className="flex gap-4">
               <a href="#" className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-50 text-gray-400 hover:bg-[#1877F2] hover:text-white transition-colors">
-                <Facebook className="h-5 w-5" />
+                <Globe className="h-5 w-5" />
               </a>
               <a href="#" className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-50 text-gray-400 hover:bg-[#E4405F] hover:text-white transition-colors">
-                <Instagram className="h-5 w-5" />
+                <Camera className="h-5 w-5" />
               </a>
               <a href="#" className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-50 text-gray-400 hover:bg-[#FF0000] hover:text-white transition-colors">
-                <Youtube className="h-5 w-5" />
+                <Video className="h-5 w-5" />
               </a>
             </div>
           </div>
