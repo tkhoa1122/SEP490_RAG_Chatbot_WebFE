@@ -11,6 +11,7 @@ import {
   X,
   SlidersHorizontal,
 } from "lucide-react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import { FloatingChatbot } from "@/components/chat/FloatingChatbot";
 import { productAPI, variantAPI, categoryAPI, localCartAPI } from "@/infrastructure/api/storefrontAPI";
@@ -46,12 +47,9 @@ function ProductSkeleton() {
 }
 
 // ── Trang chủ Storefront ──────────────────────────────────────────────────────
-export default function StorefrontPage({
-  params,
-}: {
-  params: { tenant_id: string };
-}) {
-  const tenantId = params.tenant_id;
+export default function StorefrontPage() {
+  const params = useParams();
+  const tenantId = params.tenant_id as string;
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [products, setProducts] = useState<ProductCard[]>([]);
