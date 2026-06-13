@@ -85,7 +85,7 @@ function Stepper({
                 <p className={cn("text-sm font-semibold leading-tight", isActive && "text-primary")}>
                   {step.label}
                 </p>
-                <p className="text-[11px] text-muted-foreground">{step.desc}</p>
+                <p className="text-11px text-muted-foreground">{step.desc}</p>
               </div>
             </button>
 
@@ -169,7 +169,7 @@ export default function ProductCreatePage() {
                 className={cn(
                   "inline-flex h-9 items-center gap-2 rounded-lg px-4 text-sm font-semibold text-primary-foreground",
                   "bg-primary transition-all hover:bg-primary/90 hover:shadow-md hover:shadow-primary/20",
-                  "active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                  "active:scale-98 disabled:cursor-not-allowed disabled:opacity-60"
                 )}
               >
                 {isSubmitting ? (
@@ -250,7 +250,7 @@ export default function ProductCreatePage() {
                     </div>
                   </div>
                   {attributes.length > 0 && (
-                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500/15 px-1.5 text-[11px] font-bold text-amber-600">
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500/15 px-1.5 text-11px font-bold text-amber-600">
                       {attributes.length}
                     </span>
                   )}
@@ -291,7 +291,7 @@ export default function ProductCreatePage() {
                     </div>
                   </div>
                   {variants.length > 0 && (
-                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-violet-500/15 px-1.5 text-[11px] font-bold text-violet-600">
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-violet-500/15 px-1.5 text-11px font-bold text-violet-600">
                       {variants.length}
                     </span>
                   )}
@@ -362,7 +362,7 @@ export default function ProductCreatePage() {
                           {attr.values.map((v) => (
                             <span
                               key={v.id}
-                              className="inline-flex h-5 items-center rounded-full border border-border px-2 text-[10px] font-medium text-foreground"
+                              className="inline-flex h-5 items-center rounded-full border border-border px-2 text-10px font-medium text-foreground"
                             >
                               {v.label}
                             </span>
@@ -377,7 +377,7 @@ export default function ProductCreatePage() {
             {/* Tips card */}
             <div className="rounded-xl border border-dashed border-border bg-muted/30 p-4">
               <p className="mb-2 text-xs font-semibold text-foreground">💡 Hướng dẫn nhanh</p>
-              <ul className="space-y-1.5 text-[11px] text-muted-foreground">
+              <ul className="space-y-1.5 text-11px text-muted-foreground">
                 <li>• Thêm thuộc tính "Màu sắc" với giá trị Đen, Trắng, Xám</li>
                 <li>• Thêm thuộc tính "Kích cỡ" với giá trị S, M, L, XL</li>
                 <li>• Biến thể sẽ được tự động sinh: 3 màu × 4 size = 12 biến thể</li>
