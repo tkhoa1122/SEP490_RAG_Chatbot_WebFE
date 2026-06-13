@@ -8,9 +8,9 @@
 // ============================================================================
 
 export enum StatusEnum {
-  Inactive = 0,
-  Active = 1,
-  Pending = 2,
+  Inactive = "Inactive",
+  Active = "Active",
+  Pending = "Pending",
 }
 
 export enum RoleEnum {
