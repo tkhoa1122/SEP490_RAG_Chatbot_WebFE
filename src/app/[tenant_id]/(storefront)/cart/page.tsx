@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import {
   ArrowLeft,
   ShoppingBag,
@@ -16,8 +17,9 @@ import { localCartAPI, type LocalCartItem } from "@/infrastructure/api/storefron
 const formatPrice = (price: number) =>
   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price);
 
-export default function CartPage({ params }: { params: { tenant_id: string } }) {
-  const tenantId = params.tenant_id;
+export default function CartPage() {
+  const params = useParams();
+  const tenantId = params.tenant_id as string;
   const [cartItems, setCartItems] = useState<LocalCartItem[]>([]);
 
   // ── Load giỏ hàng từ localStorage ────────────────────────────────────────
