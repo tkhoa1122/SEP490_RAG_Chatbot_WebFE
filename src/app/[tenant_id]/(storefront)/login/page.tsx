@@ -4,8 +4,9 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Eye, EyeOff, ArrowLeft, Loader2, Check } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { authAPI } from "@/infrastructure/api/authAPI";
 
 // ─── Minimal UI Components (Simulating shadcn/ui) ──────────────────────────
 
@@ -57,23 +58,68 @@ export default function BuyerAuthPage() {
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+  const router = useRouter();
 
   // Login Handlers
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setErrorMsg("");
+    setSuccessMsg("");
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    setIsLoading(false);
-    // Redirect logic would go here
+    
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    try {
+      const res = await authAPI.login({ email, password });
+      if (res.code === 200) {
+        router.push(`/${tenantId}`);
+        router.refresh();
+      } else {
+        setErrorMsg(res.message || "Đăng nhập thất bại");
+      }
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.message || "Có lỗi xảy ra khi đăng nhập");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Register Handlers
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setErrorMsg("");
+    setSuccessMsg("");
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    setIsLoading(false);
-    // Success logic would go here
+
+    const formData = new FormData(e.currentTarget);
+    const fullName = formData.get("fullName") as string;
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+    const confirm = formData.get("confirmPassword") as string;
+
+    if (password !== confirm) {
+      setErrorMsg("Mật khẩu xác nhận không khớp");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const res = await authAPI.register({ email, password, fullName });
+      if (res.code === 200) {
+        setActiveTab("login");
+        setSuccessMsg("Đăng ký thành công! Vui lòng đăng nhập.");
+      } else {
+        setErrorMsg(res.message || "Đăng ký thất bại");
+      }
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.message || "Có lỗi xảy ra khi đăng ký");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -130,7 +176,7 @@ export default function BuyerAuthPage() {
           {/* Custom Tabs */}
           <div className="mb-8 rounded-xl bg-slate-100 p-1 flex">
             <button
-              onClick={() => setActiveTab("login")}
+              onClick={() => { setActiveTab("login"); setErrorMsg(""); setSuccessMsg(""); }}
               className={cn(
                 "flex-1 rounded-lg py-2.5 text-sm font-semibold transition-all duration-200",
                 activeTab === "login" ? "bg-white text-[#2c5243] shadow-sm" : "text-slate-500 hover:text-slate-700"
@@ -139,7 +185,7 @@ export default function BuyerAuthPage() {
               Đăng nhập
             </button>
             <button
-              onClick={() => setActiveTab("register")}
+              onClick={() => { setActiveTab("register"); setErrorMsg(""); setSuccessMsg(""); }}
               className={cn(
                 "flex-1 rounded-lg py-2.5 text-sm font-semibold transition-all duration-200",
                 activeTab === "register" ? "bg-white text-[#2c5243] shadow-sm" : "text-slate-500 hover:text-slate-700"
@@ -148,6 +194,17 @@ export default function BuyerAuthPage() {
               Đăng ký
             </button>
           </div>
+
+          {errorMsg && (
+            <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600 border border-red-100">
+              {errorMsg}
+            </div>
+          )}
+          {successMsg && (
+            <div className="mb-4 rounded-lg bg-green-50 p-3 text-sm text-green-600 border border-green-100">
+              {successMsg}
+            </div>
+          )}
 
           {/* Tab Content */}
           <AnimatePresence mode="wait">
@@ -164,7 +221,7 @@ export default function BuyerAuthPage() {
                 <form onSubmit={handleLogin} className="space-y-5">
                   <div className="space-y-1.5">
                     <Label htmlFor="login-email">Email</Label>
-                    <Input id="login-email" type="email" placeholder="Nhập địa chỉ email của bạn" required />
+                    <Input id="login-email" name="email" type="email" placeholder="Nhập địa chỉ email của bạn" required />
                   </div>
 
                   <div className="space-y-1.5">
@@ -177,6 +234,7 @@ export default function BuyerAuthPage() {
                     <div className="relative">
                       <Input
                         id="login-password"
+                        name="password"
                         type={showPass ? "text" : "password"}
                         placeholder="••••••••"
                         required
@@ -251,12 +309,12 @@ export default function BuyerAuthPage() {
                 <form onSubmit={handleRegister} className="space-y-5">
                   <div className="space-y-1.5">
                     <Label htmlFor="reg-name">Họ và tên</Label>
-                    <Input id="reg-name" type="text" placeholder="Nguyễn Văn A" required />
+                    <Input id="reg-name" name="fullName" type="text" placeholder="Nguyễn Văn A" required />
                   </div>
 
                   <div className="space-y-1.5">
                     <Label htmlFor="reg-email">Email</Label>
-                    <Input id="reg-email" type="email" placeholder="Nhập địa chỉ email của bạn" required />
+                    <Input id="reg-email" name="email" type="email" placeholder="Nhập địa chỉ email của bạn" required />
                   </div>
 
                   <div className="space-y-1.5">
@@ -264,6 +322,7 @@ export default function BuyerAuthPage() {
                     <div className="relative">
                       <Input
                         id="reg-password"
+                        name="password"
                         type={showPass ? "text" : "password"}
                         placeholder="Tối thiểu 8 ký tự"
                         required
@@ -283,6 +342,7 @@ export default function BuyerAuthPage() {
                     <div className="relative">
                       <Input
                         id="reg-confirm"
+                        name="confirmPassword"
                         type={showConfirm ? "text" : "password"}
                         placeholder="Nhập lại mật khẩu"
                         required

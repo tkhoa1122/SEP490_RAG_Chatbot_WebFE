@@ -15,6 +15,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { FloatingChatbot } from "@/components/chat/FloatingChatbot";
 import { productAPI, variantAPI, categoryAPI, localCartAPI } from "@/infrastructure/api/storefrontAPI";
+import { authAPI } from "@/infrastructure/api/authAPI";
 import type { ProductResponse, VariantResponse, CategoryResponse } from "@/types/api";
 import { StatusEnum } from "@/types/api";
 
@@ -63,8 +64,7 @@ export default function StorefrontPage() {
 
   // ── Đọc số lượng giỏ hàng từ localStorage ─────────────────────────────────
   useEffect(() => {
-    const token = localStorage.getItem("auth_token");
-    setIsLoggedIn(!!token);
+    setIsLoggedIn(authAPI.isLoggedIn());
     setCartCount(localCartAPI.getTotalCount());
   }, []);
 
@@ -207,7 +207,7 @@ export default function StorefrontPage() {
                 <button
                   className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-slate-100 text-slate-600 transition-colors hover:bg-slate-200"
                   onClick={() => {
-                    localStorage.removeItem("auth_token");
+                    authAPI.logout();
                     setIsLoggedIn(false);
                   }}
                   title="Đăng xuất"
