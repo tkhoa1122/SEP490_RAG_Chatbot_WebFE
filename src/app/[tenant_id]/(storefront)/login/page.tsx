@@ -7,6 +7,10 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { authAPI } from "@/infrastructure/api/authAPI";
+import { useAppDispatch } from "@/application/hooks/reduxHooks";
+import { setUser } from "@/application/slices/userSlice";
+import type { User } from "@/domain/entities/User";
+import { UserRole } from "@/domain/entities/User";
 
 // ─── Minimal UI Components (Simulating shadcn/ui) ──────────────────────────
 
@@ -53,6 +57,7 @@ export default function BuyerAuthPage() {
   const params = useParams();
   const tenantId = params.tenant_id as string;
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+  const dispatch = useAppDispatch();
 
   // Form States
   const [showPass, setShowPass] = useState(false);
@@ -75,9 +80,17 @@ export default function BuyerAuthPage() {
 
     try {
       const res = await authAPI.login({ email, password });
-      if (res.code === 200) {
+      if (res.code === 200 && res.data?.token) {
+        // Dispatch vào Redux Store → Header cập nhật ngay, không cần F5
+        const buyerUser: User = {
+          id: "",          // Shopfake API chỉ trả token, không trả profile trong login
+          email,
+          name: email,   // Hiển thị tạm email, có thể gọi /auth/me sau để lấy đầy đủ
+          role: UserRole.CUSTOMER,
+          createdAt: new Date().toISOString(),
+        };
+        dispatch(setUser({ user: buyerUser, token: res.data.token }));
         router.push(`/${tenantId}`);
-        router.refresh();
       } else {
         setErrorMsg(res.message || "Đăng nhập thất bại");
       }

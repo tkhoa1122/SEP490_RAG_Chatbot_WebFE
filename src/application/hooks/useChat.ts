@@ -1,34 +1,21 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { useChatStore } from "@/application/store/chatStore";
-import { chatRepositoryImpl } from "@/infrastructure/repositories/ChatRepositoryImpl";
-import { CreateChatSessionUseCase } from "@/application/usecases/chat/CreateChatSessionUseCase";
-import { SendMessageUseCase } from "@/application/usecases/chat/SendMessageUseCase";
+import { useAppDispatch, useAppSelector } from "./reduxHooks";
+import { addMessage } from "../slices/chatSlice";
+import { initChatSession, sendChatMessage } from "../services/chatService";
 import type { ChatMessage } from "@/domain/entities/Chat";
 
 export function useChat(tenantId: string) {
-  const { session, messages, isLoading, setSession, addMessage, setLoading, setError } =
-    useChatStore();
+  const dispatch = useAppDispatch();
+  const { session, messages, isLoading, error } = useAppSelector((state) => state.chat);
+  
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const initSession = useCallback(async () => {
-    try {
-      setLoading(true);
-      const useCase = new CreateChatSessionUseCase(chatRepositoryImpl);
-      const response = await useCase.execute(tenantId);
-      if (response.success && response.data) {
-        setSession(response.data as any); // Type assertion in case store uses older types
-      } else {
-        setError(response.message || "Failed to start chat session");
-      }
-    } catch (err) {
-      setError("Failed to start chat session");
-    } finally {
-      setLoading(false);
-    }
-  }, [tenantId, setSession, setLoading, setError]);
+  const initSession = useCallback(() => {
+    dispatch(initChatSession(tenantId));
+  }, [tenantId, dispatch]);
 
   const sendMessage = useCallback(async () => {
     if (!input.trim() || !session) return;
@@ -39,29 +26,20 @@ export function useChat(tenantId: string) {
       content: input,
       timestamp: new Date().toISOString(),
     };
-    addMessage(userMessage as any); // Type assertion for store compatibility
+    
+    // Add user message optimistically
+    dispatch(addMessage(userMessage as any));
     setInput("");
-    setLoading(true);
 
-    try {
-      const useCase = new SendMessageUseCase(chatRepositoryImpl);
-      const response = await useCase.execute({
-        sessionId: session.id,
-        tenantId,
-        message: input,
-      });
-      if (response.success && response.data) {
-        addMessage(response.data as any);
-      } else {
-        setError(response.message || "Failed to send message. Please try again.");
-      }
-    } catch {
-      setError("Failed to send message. Please try again.");
-    } finally {
-      setLoading(false);
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [input, session, tenantId, addMessage, setLoading, setError]);
+    // Dispatch the thunk to send message
+    await dispatch(sendChatMessage({
+      sessionId: session.id,
+      tenantId,
+      message: input,
+    }));
+    
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [input, session, tenantId, dispatch]);
 
-  return { messages, isLoading, input, setInput, sendMessage, initSession, bottomRef };
+  return { messages, isLoading, error, input, setInput, sendMessage, initSession, bottomRef };
 }

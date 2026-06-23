@@ -1,7 +1,4 @@
-// Application State Slice: Tenant (Zustand)
-
-import { create } from "zustand";
-import { devtools } from "zustand/middleware";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type { TenantConfig } from "@/domain/entities/User";
 
 interface TenantState {
@@ -9,23 +6,26 @@ interface TenantState {
   isLoading: boolean;
 }
 
-interface TenantActions {
-  setTenantConfig: (config: TenantConfig) => void;
-  setLoading: (loading: boolean) => void;
-  clearTenant: () => void;
-}
+const initialState: TenantState = {
+  tenantConfig: null,
+  isLoading: false,
+};
 
-type TenantStore = TenantState & TenantActions;
+const tenantSlice = createSlice({
+  name: "tenant",
+  initialState,
+  reducers: {
+    setTenantConfig(state, action: PayloadAction<TenantConfig>) {
+      state.tenantConfig = action.payload;
+    },
+    setLoading(state, action: PayloadAction<boolean>) {
+      state.isLoading = action.payload;
+    },
+    clearTenant(state) {
+      state.tenantConfig = null;
+    },
+  },
+});
 
-export const useTenantSlice = create<TenantStore>()(
-  devtools(
-    (set) => ({
-      tenantConfig: null,
-      isLoading: false,
-      setTenantConfig: (tenantConfig) => set({ tenantConfig }),
-      setLoading: (isLoading) => set({ isLoading }),
-      clearTenant: () => set({ tenantConfig: null }),
-    }),
-    { name: "TenantSlice" }
-  )
-);
+export const { setTenantConfig, setLoading, clearTenant } = tenantSlice.actions;
+export default tenantSlice.reducer;
