@@ -46,13 +46,14 @@ export default function proxy(request: NextRequest) {
   // ── /[tenant_id]/business: bắt buộc BUSINESS_OWNER hoặc CATALOG_MARKETING ─
   const isBusinessRoute = /^\/[^/]+\/business(\/.*)?$/.test(pathname);
   if (isBusinessRoute) {
-    if (!token) {
-      return redirectToLogin(request, "NOT_AUTHENTICATED");
-    }
-    const allowedRoles = ["BUSINESS_OWNER", "CATALOG_MARKETING"];
-    if (!allowedRoles.includes(userRole ?? "")) {
-      return NextResponse.redirect(new URL("/403", request.url));
-    }
+    // TẠM THỜI TẮT AUTH
+    // if (!token) {
+    //   return redirectToLogin(request, "NOT_AUTHENTICATED");
+    // }
+    // const allowedRoles = ["BUSINESS_OWNER", "CATALOG_MARKETING"];
+    // if (!allowedRoles.includes(userRole ?? "")) {
+    //   return NextResponse.redirect(new URL("/403", request.url));
+    // }
     return NextResponse.next();
   }
 

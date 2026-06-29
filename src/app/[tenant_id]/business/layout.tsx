@@ -5,32 +5,27 @@
 
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { BusinessSidebar } from "@/components/dashboard/BusinessSidebar";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
+  params: Promise<{ tenant_id: string }>;
 }
 
-export default async function DashboardLayout({ children }: DashboardLayoutProps) {
+export default async function DashboardLayout({ children, params }: DashboardLayoutProps) {
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
+  const { tenant_id } = await params;
 
-  // Double-check: nếu không có token → redirect login
-  // (Middleware là Guard 1, layout này là Guard 2 — defense in depth)
-  if (!token) {
-    redirect("/login?reason=SESSION_EXPIRED");
-  }
+  // TẠM THỜI TẮT AUTH ĐỂ LÀM UX/UI
+  // if (!token) {
+  //   redirect("/login?reason=SESSION_EXPIRED");
+  // }
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      {/* Sidebar — TODO: DashboardSidebar component với conditional nav items */}
-      <aside className="hidden w-64 shrink-0 border-r bg-card md:flex md:flex-col">
-        <div className="flex h-16 items-center border-b px-6">
-          <span className="text-lg font-semibold tracking-tight">Smart Shopping</span>
-        </div>
-        <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-          {/* Nav items sẽ render có điều kiện theo role */}
-        </nav>
-      </aside>
+      {/* Sidebar */}
+      <BusinessSidebar tenantId={tenant_id} />
 
       {/* Main area */}
       <div className="flex flex-1 flex-col overflow-hidden">

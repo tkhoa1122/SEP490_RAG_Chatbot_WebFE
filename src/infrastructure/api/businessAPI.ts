@@ -19,96 +19,17 @@
  */
 
 import mainAxiosClient from "./mainAxiosClient";
+import type {
+  Business, BusinessStatus, BusinessRegistrationCommand, UpdateBusinessCommand, BusinessFilter,
+  CatalogMember, UserStatus, MemberRegistrationCommand, UpdateMemberCommand, MemberFilter,
+} from "@/infrastructure/dto/BusinessDTO";
+import type { MainApiWrapper, MainPaginatedList } from "@/infrastructure/dto/MainApiWrapper";
 
-// ── Types ──────────────────────────────────────────────────────────────────────
-
-export type BusinessStatus = "REJECTED" | "ACTIVE" | "DELETED" | "PENDING_APPROVAL";
-
-export interface Business {
-  id: string;
-  businessName?: string;
-  businessOwnerEmail?: string;
-  businessOwnerName?: string;
-  hotLine?: string;
-  websiteUrl?: string;
-  addressLine?: string;
-  status?: BusinessStatus;
-  createdAt?: string;
-}
-
-export interface BusinessRegistrationCommand {
-  businessName: string;
-  businessOwnerEmail: string;
-  businessOwnerName: string;
-  hotLine?: string;
-  websiteUrl?: string;
-  addressLine?: string;
-}
-
-export interface UpdateBusinessCommand {
-  businessName?: string;
-  hotLine?: string;
-  websiteUrl?: string;
-  addressLine?: string;
-}
-
-export interface BusinessFilter {
-  Search?: string;
-  Status?: BusinessStatus;
-  CreatedFrom?: string;
-  PageIndex?: number;
-  PageSize?: number;
-}
-
-// Catalog Team
-export type UserStatus = "ACTIVE" | "DELETED" | "PENDING_PROFILE_COMPLETION" | "PENDING_APPROVAL" | "REJECTED";
-
-export interface CatalogMember {
-  id: string;
-  email?: string;
-  fullName?: string;
-  phoneNumber?: string;
-  dateOfBirth?: string;
-  gender?: number;
-  status?: UserStatus;
-  isEmailVerified?: boolean;
-}
-
-export interface MemberRegistrationCommand {
-  email: string;
-  fullName: string;
-}
-
-export interface UpdateMemberCommand {
-  fullName?: string;
-  phoneNumber?: string;
-  dateOfBirth?: string;
-  gender?: number;
-}
-
-export interface MemberFilter {
-  FullName?: string;
-  Email?: string;
-  IsEmailVerified?: boolean;
-  Gender?: number;
-  UserStatus?: UserStatus;
-  OrderBy?: string;
-  PageIndex?: number;
-  PageSize?: number;
-}
-
-interface ApiWrapper<T> {
-  success?: boolean;
-  message?: string;
-  data?: T;
-}
-
-interface PaginatedData<T> {
-  items: T[];
-  totalCount?: number;
-  pageIndex?: number;
-  pageSize?: number;
-}
+// Re-export DTOs để các component vẫn import được từ đây (backward compatible)
+export type {
+  Business, BusinessStatus, BusinessRegistrationCommand, UpdateBusinessCommand, BusinessFilter,
+  CatalogMember, UserStatus, MemberRegistrationCommand, UpdateMemberCommand, MemberFilter,
+} from "@/infrastructure/dto/BusinessDTO";
 
 // ── Business API ───────────────────────────────────────────────────────────────
 
@@ -116,8 +37,8 @@ export const businessAPI = {
   // ── Admin endpoints ──────────────────────────────────────────────────────────
 
   /** GET /api/v1/businesses — Admin lấy danh sách doanh nghiệp */
-  getAll: async (filter?: BusinessFilter): Promise<ApiWrapper<PaginatedData<Business>>> => {
-    const { data } = await mainAxiosClient.get<ApiWrapper<PaginatedData<Business>>>(
+  getAll: async (filter?: BusinessFilter): Promise<MainApiWrapper<MainPaginatedList<Business>>> => {
+    const { data } = await mainAxiosClient.get<MainApiWrapper<MainPaginatedList<Business>>>(
       "/businesses",
       { params: filter }
     );
@@ -125,8 +46,8 @@ export const businessAPI = {
   },
 
   /** POST /api/v1/businesses — Admin tạo doanh nghiệp mới */
-  create: async (body: BusinessRegistrationCommand): Promise<ApiWrapper<Business>> => {
-    const { data } = await mainAxiosClient.post<ApiWrapper<Business>>(
+  create: async (body: BusinessRegistrationCommand): Promise<MainApiWrapper<Business>> => {
+    const { data } = await mainAxiosClient.post<MainApiWrapper<Business>>(
       "/businesses",
       body
     );
@@ -134,8 +55,8 @@ export const businessAPI = {
   },
 
   /** PUT /api/v1/businesses/{id}/verify — Admin phê duyệt / từ chối */
-  verify: async (id: string, isApproved: boolean): Promise<ApiWrapper<Business>> => {
-    const { data } = await mainAxiosClient.put<ApiWrapper<Business>>(
+  verify: async (id: string, isApproved: boolean): Promise<MainApiWrapper<Business>> => {
+    const { data } = await mainAxiosClient.put<MainApiWrapper<Business>>(
       `/businesses/${id}/verify`,
       null,
       { params: { isApproved } }
@@ -146,16 +67,16 @@ export const businessAPI = {
   // ── BO/CT endpoints ──────────────────────────────────────────────────────────
 
   /** GET /api/v1/businesses/profile — BO/CT xem profile */
-  getProfile: async (): Promise<ApiWrapper<Business>> => {
-    const { data } = await mainAxiosClient.get<ApiWrapper<Business>>(
+  getProfile: async (): Promise<MainApiWrapper<Business>> => {
+    const { data } = await mainAxiosClient.get<MainApiWrapper<Business>>(
       "/businesses/profile"
     );
     return data;
   },
 
   /** PUT /api/v1/businesses/profile — BO/CT cập nhật profile */
-  updateProfile: async (body: UpdateBusinessCommand): Promise<ApiWrapper<Business>> => {
-    const { data } = await mainAxiosClient.put<ApiWrapper<Business>>(
+  updateProfile: async (body: UpdateBusinessCommand): Promise<MainApiWrapper<Business>> => {
+    const { data } = await mainAxiosClient.put<MainApiWrapper<Business>>(
       "/businesses/profile",
       body
     );
@@ -167,8 +88,8 @@ export const businessAPI = {
 
 export const catalogTeamAPI = {
   /** GET /api/v1/catalog-teams — Lấy danh sách thành viên */
-  getAll: async (filter?: MemberFilter): Promise<ApiWrapper<PaginatedData<CatalogMember>>> => {
-    const { data } = await mainAxiosClient.get<ApiWrapper<PaginatedData<CatalogMember>>>(
+  getAll: async (filter?: MemberFilter): Promise<MainApiWrapper<MainPaginatedList<CatalogMember>>> => {
+    const { data } = await mainAxiosClient.get<MainApiWrapper<MainPaginatedList<CatalogMember>>>(
       "/catalog-teams",
       { params: filter }
     );
@@ -176,16 +97,16 @@ export const catalogTeamAPI = {
   },
 
   /** GET /api/v1/catalog-teams/{id} — Lấy chi tiết thành viên */
-  getById: async (id: string): Promise<ApiWrapper<CatalogMember>> => {
-    const { data } = await mainAxiosClient.get<ApiWrapper<CatalogMember>>(
+  getById: async (id: string): Promise<MainApiWrapper<CatalogMember>> => {
+    const { data } = await mainAxiosClient.get<MainApiWrapper<CatalogMember>>(
       `/catalog-teams/${id}`
     );
     return data;
   },
 
   /** POST /api/v1/catalog-teams — Thêm thành viên mới */
-  create: async (body: MemberRegistrationCommand): Promise<ApiWrapper<CatalogMember>> => {
-    const { data } = await mainAxiosClient.post<ApiWrapper<CatalogMember>>(
+  create: async (body: MemberRegistrationCommand): Promise<MainApiWrapper<CatalogMember>> => {
+    const { data } = await mainAxiosClient.post<MainApiWrapper<CatalogMember>>(
       "/catalog-teams",
       body
     );
@@ -193,8 +114,8 @@ export const catalogTeamAPI = {
   },
 
   /** PUT /api/v1/catalog-teams/{id} — Cập nhật thành viên */
-  update: async (id: string, body: UpdateMemberCommand): Promise<ApiWrapper<CatalogMember>> => {
-    const { data } = await mainAxiosClient.put<ApiWrapper<CatalogMember>>(
+  update: async (id: string, body: UpdateMemberCommand): Promise<MainApiWrapper<CatalogMember>> => {
+    const { data } = await mainAxiosClient.put<MainApiWrapper<CatalogMember>>(
       `/catalog-teams/${id}`,
       body
     );
@@ -202,8 +123,8 @@ export const catalogTeamAPI = {
   },
 
   /** DELETE /api/v1/catalog-teams/{id} — Xóa thành viên */
-  delete: async (id: string): Promise<ApiWrapper<null>> => {
-    const { data } = await mainAxiosClient.delete<ApiWrapper<null>>(
+  delete: async (id: string): Promise<MainApiWrapper<null>> => {
+    const { data } = await mainAxiosClient.delete<MainApiWrapper<null>>(
       `/catalog-teams/${id}`
     );
     return data;

@@ -40,10 +40,13 @@ mainAxiosClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+import { translateValidationError } from "./ValidationTranslator";
+
 // ── Response Interceptor: xử lý lỗi toàn cục ─────────────────────────────────
 mainAxiosClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Xử lý lỗi Unauthorized (401)
     if (error.response?.status === 401 && typeof window !== "undefined") {
       // Token hết hạn hoặc không hợp lệ → xóa token và redirect về trang login quản trị
       localStorage.removeItem(MAIN_TOKEN_KEY);
@@ -54,6 +57,36 @@ mainAxiosClient.interceptors.response.use(
       document.cookie = "user_role=; path=/; max-age=0";
       // Middleware sẽ tự redirect về /login khi cookie trống
     }
+
+    // Xử lý lỗi Validation (400) từ .NET Core
+    if (error.response?.status === 400 && error.response?.data) {
+      const data = error.response.data;
+      const errorMessages = [];
+      
+      if (data.errors && typeof data.errors === "object") {
+        // Gộp tất cả các mảng lỗi lại thành 1 chuỗi
+        for (const [field, messages] of Object.entries(data.errors)) {
+          if (Array.isArray(messages)) {
+            const fieldErrs = messages.map(msg => translateValidationError(String(msg)));
+            errorMessages.push(`${field}: ${fieldErrs.join(", ")}`);
+          } else if (typeof messages === "string") {
+            errorMessages.push(`${field}: ${translateValidationError(messages)}`);
+          }
+        }
+      }
+      
+      if (errorMessages.length > 0) {
+        error.response.data.message = errorMessages.join(" | ");
+      } else if (data.detail) {
+        error.response.data.message = translateValidationError(data.detail);
+      } else if (data.title) {
+        error.response.data.message = translateValidationError(data.title);
+      } else if (data.message) {
+        // Có thể backend trả về thẳng message
+        error.response.data.message = translateValidationError(data.message);
+      }
+    }
+
     return Promise.reject(error);
   }
 );

@@ -9,62 +9,18 @@
  */
 
 import mainAxiosClient from "./mainAxiosClient";
+import type { UserRecord, UserStatus, UpdateUserCommand, UserFilter } from "@/infrastructure/dto/UserDTO";
+import type { MainApiWrapper, MainPaginatedList } from "@/infrastructure/dto/MainApiWrapper";
 
-// ── Types ──────────────────────────────────────────────────────────────────────
-
-export type UserStatus = "ACTIVE" | "DELETED" | "PENDING_PROFILE_COMPLETION" | "PENDING_APPROVAL" | "REJECTED";
-
-export interface UserRecord {
-  id: string;
-  email?: string;
-  fullName?: string;
-  phoneNumber?: string;
-  dateOfBirth?: string;
-  gender?: number;
-  status?: UserStatus;
-  isEmailVerified?: boolean;
-  role?: string;
-  tenantId?: string | null;
-  createdAt?: string;
-}
-
-export interface UpdateUserCommand {
-  fullName?: string;
-  phoneNumber?: string;
-  dateOfBirth?: string;
-  gender?: number;
-}
-
-export interface UserFilter {
-  FullName?: string;
-  Email?: string;
-  IsEmailVerified?: boolean;
-  Gender?: number;
-  UserStatus?: UserStatus;
-  OrderBy?: string;
-  PageIndex?: number;
-  PageSize?: number;
-}
-
-interface ApiWrapper<T> {
-  success?: boolean;
-  message?: string;
-  data?: T;
-}
-
-interface PaginatedData<T> {
-  items: T[];
-  totalCount?: number;
-  pageIndex?: number;
-  pageSize?: number;
-}
+// Re-export DTOs
+export type { UserRecord, UserStatus, UpdateUserCommand, UserFilter } from "@/infrastructure/dto/UserDTO";
 
 // ── User API ───────────────────────────────────────────────────────────────────
 
 export const userAPI = {
   /** GET /api/v1/users — Lấy danh sách người dùng */
-  getAll: async (filter?: UserFilter): Promise<ApiWrapper<PaginatedData<UserRecord>>> => {
-    const { data } = await mainAxiosClient.get<ApiWrapper<PaginatedData<UserRecord>>>(
+  getAll: async (filter?: UserFilter): Promise<MainApiWrapper<MainPaginatedList<UserRecord>>> => {
+    const { data } = await mainAxiosClient.get<MainApiWrapper<MainPaginatedList<UserRecord>>>(
       "/users",
       { params: filter }
     );
@@ -72,16 +28,16 @@ export const userAPI = {
   },
 
   /** GET /api/v1/users/{id} — Lấy chi tiết người dùng */
-  getById: async (id: string): Promise<ApiWrapper<UserRecord>> => {
-    const { data } = await mainAxiosClient.get<ApiWrapper<UserRecord>>(
+  getById: async (id: string): Promise<MainApiWrapper<UserRecord>> => {
+    const { data } = await mainAxiosClient.get<MainApiWrapper<UserRecord>>(
       `/users/${id}`
     );
     return data;
   },
 
   /** PUT /api/v1/users/{id} — Cập nhật thông tin người dùng */
-  update: async (id: string, body: UpdateUserCommand): Promise<ApiWrapper<UserRecord>> => {
-    const { data } = await mainAxiosClient.put<ApiWrapper<UserRecord>>(
+  update: async (id: string, body: UpdateUserCommand): Promise<MainApiWrapper<UserRecord>> => {
+    const { data } = await mainAxiosClient.put<MainApiWrapper<UserRecord>>(
       `/users/${id}`,
       body
     );
@@ -89,8 +45,8 @@ export const userAPI = {
   },
 
   /** DELETE /api/v1/users/{id} — Xóa người dùng */
-  delete: async (id: string): Promise<ApiWrapper<null>> => {
-    const { data } = await mainAxiosClient.delete<ApiWrapper<null>>(
+  delete: async (id: string): Promise<MainApiWrapper<null>> => {
+    const { data } = await mainAxiosClient.delete<MainApiWrapper<null>>(
       `/users/${id}`
     );
     return data;

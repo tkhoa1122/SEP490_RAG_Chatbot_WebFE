@@ -2,8 +2,27 @@
 
 import { Search, Bell, LogOut, User, ChevronDown, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useRouter } from "next/navigation";
 
 export function AdminHeader() {
+  const router = useRouter();
+
+  const handleLogout = () => {
+    // Basic logout logic for now (should clear tokens and state in real app)
+    localStorage.removeItem("main_auth_token");
+    document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+    document.cookie = "user_role=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+    router.push("/login");
+  };
+
   return (
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-background px-6">
       {/* Left: Mobile menu + Search */}
@@ -18,9 +37,9 @@ export function AdminHeader() {
             type="text"
             placeholder="Tìm kiếm doanh nghiệp, gói cước..."
             className={cn(
-              "h-9 w-[280px] rounded-lg border border-border bg-muted/40 pl-9 pr-4 text-sm text-foreground",
+              "h-9 w-70 rounded-lg border border-border bg-muted/40 pl-9 pr-4 text-sm text-foreground",
               "outline-none transition-all placeholder:text-muted-foreground/60",
-              "focus:w-[360px] focus:border-ring focus:bg-background focus:ring-2 focus:ring-ring/20"
+              "focus:w-90 focus:border-ring focus:bg-background focus:ring-2 focus:ring-ring/20"
             )}
           />
         </div>
@@ -28,34 +47,32 @@ export function AdminHeader() {
 
       {/* Right: Notifications + Profile */}
       <div className="flex items-center gap-2">
-        {/* Notification bell */}
-        <button className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
-          <Bell className="h-4.5 w-4.5" />
-          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-background" />
-        </button>
-
         {/* Divider */}
         <div className="mx-1 h-6 w-px bg-border" />
 
         {/* Profile dropdown */}
-        <button className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-slate-700 to-slate-800 text-xs font-bold text-white">
-            <User className="h-4 w-4" />
-          </div>
-          <div className="hidden text-left sm:block">
-            <p className="text-sm font-medium leading-tight text-foreground">System Admin</p>
-            <p className="text-[11px] text-muted-foreground">admin@smartshop.vn</p>
-          </div>
-          <ChevronDown className="hidden h-3.5 w-3.5 text-muted-foreground sm:block" />
-        </button>
-
-        {/* Logout */}
-        <button
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-          aria-label="Đăng xuất"
-        >
-          <LogOut className="h-4 w-4" />
-        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger render={
+            <button className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted outline-none">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#5a9c82] to-[#2c5243] text-xs font-bold text-white">
+                <User className="h-4 w-4" />
+              </div>
+              <div className="hidden text-left sm:block">
+                <p className="text-sm font-medium leading-tight text-foreground">System Admin</p>
+                <p className="text-[11px] text-muted-foreground">admin@smartshop.vn</p>
+              </div>
+              <ChevronDown className="hidden h-3.5 w-3.5 text-muted-foreground sm:block" />
+            </button>
+          } />
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>Tài khoản của tôi</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:bg-red-50 focus:text-red-600 cursor-pointer">
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Đăng xuất</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

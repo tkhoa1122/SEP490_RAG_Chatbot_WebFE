@@ -15,44 +15,45 @@
 
 import mainAxiosClient, { MAIN_TOKEN_KEY, MAIN_USER_KEY } from "./mainAxiosClient";
 import { UserRole } from "@/domain/entities/User";
+import type { LoginRequest, LoginResponse, MeResponse } from "@/infrastructure/dto/AuthDTO";
+import type { MainApiWrapper } from "@/infrastructure/dto/MainApiWrapper";
 
-// ── Request / Response types ───────────────────────────────────────────────────
+// Re-export DTOs để các component vẫn import được từ đây (backward compatible)
+export type { LoginRequest, LoginResponse, MeResponse } from "@/infrastructure/dto/AuthDTO";
+export type { MainApiWrapper } from "@/infrastructure/dto/MainApiWrapper";
 
-export interface LoginRequest {
-  email: string;
-  password: string;
+// ── JWT Decoder ────────────────────────────────────────────────────────────────
+
+/** Giải mã JWT payload mà không cần thư viện ngoài */
+function decodeJwtPayload(token: string): Record<string, unknown> {
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch {
+    return {};
+  }
 }
 
-/** Response từ POST /api/v1/auth/login */
-export interface LoginResponse {
-  token: string;
-  userId?: string;
-  email?: string;
-  fullName?: string;
-  role?: string;
-  tenantId?: string | null;
-}
-
-/** Response từ GET /api/v1/auth/me */
-export interface MeResponse {
-  id: string;
-  email: string;
-  fullName?: string;
-  role: string;
-  tenantId?: string | null;
-  status?: string;
-  phoneNumber?: string;
-  dateOfBirth?: string;
-  gender?: number;
-  avatarUrl?: string;
-}
-
-// Wrapper chung mà BE hay trả về
-interface ApiWrapper<T> {
-  success?: boolean;
-  message?: string;
-  data?: T;
-  statusCode?: number;
+/**
+ * Map role từ JWT claim sang UserRole enum của app.
+ * BE trả về "ADMIN", "BUSINESS_OWNER", "CATALOG_MARKETING", v.v.
+ */
+function mapJwtRoleToUserRole(jwtRole: string): string {
+  const roleMap: Record<string, string> = {
+    ADMIN: UserRole.SYSTEM_ADMIN,
+    SYSTEM_ADMIN: UserRole.SYSTEM_ADMIN,
+    BUSINESS_OWNER: UserRole.BUSINESS_OWNER,
+    CATALOG_MARKETING: UserRole.CATALOG_MARKETING,
+    CUSTOMER: UserRole.CUSTOMER,
+  };
+  return roleMap[jwtRole] ?? jwtRole;
 }
 
 // ── Main Auth API ──────────────────────────────────────────────────────────────
@@ -62,29 +63,55 @@ export const mainAuthAPI = {
    * Đăng nhập dành cho Admin / BO / CT
    * POST /api/v1/auth/login
    */
-  login: async (request: LoginRequest): Promise<ApiWrapper<LoginResponse>> => {
-    const { data } = await mainAxiosClient.post<ApiWrapper<LoginResponse>>(
+  login: async (request: LoginRequest): Promise<MainApiWrapper<LoginResponse>> => {
+    const { data } = await mainAxiosClient.post<any>(
       "/auth/login",
       request
     );
 
-    const payload = data.data;
-    if (payload?.token) {
-      saveMainToken(payload.token, {
-        role: payload.role,
-        tenantId: payload.tenantId,
-      });
+    // BE trả về: { isSuccess, message, data: { accessToken, isEmailVerified, ... } }
+    const payload = data.data || data;
+    const token = payload.accessToken || payload.token;
+
+    if (token) {
+      // Giải mã JWT để lấy role và tenantId
+      const jwtPayload = decodeJwtPayload(token);
+      console.log("🔑 [Login] JWT decoded:", jwtPayload);
+
+      const rawRole = (
+        jwtPayload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
+        jwtPayload["role"] ||
+        ""
+      ) as string;
+      const role = mapJwtRoleToUserRole(rawRole);
+      const tenantId = (jwtPayload["businessSlug"] || jwtPayload["tenantId"] || null) as string | null;
+
+      // Lưu token + cookies
+      saveMainToken(token, { role, tenantId });
+
+      return {
+        isSuccess: true,
+        success: true,
+        message: data.message,
+        data: {
+          accessToken: token,
+          isEmailVerified: payload.isEmailVerified,
+          isProfileCompleted: payload.isProfileCompleted,
+          role,
+          tenantId,
+        },
+      };
     }
 
-    return data;
+    return data as MainApiWrapper<LoginResponse>;
   },
 
   /**
    * Lấy thông tin profile người dùng hiện tại
    * GET /api/v1/auth/me
    */
-  getMe: async (): Promise<ApiWrapper<MeResponse>> => {
-    const { data } = await mainAxiosClient.get<ApiWrapper<MeResponse>>("/auth/me");
+  getMe: async (): Promise<MainApiWrapper<MeResponse>> => {
+    const { data } = await mainAxiosClient.get<MainApiWrapper<MeResponse>>("/auth/me");
     return data;
   },
 

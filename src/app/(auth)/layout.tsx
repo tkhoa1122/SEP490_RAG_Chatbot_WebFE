@@ -8,11 +8,11 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     <div className="flex min-h-screen">
       {/* Left Panel — Branding / Illustration */}
       <div className="relative hidden w-[45%] flex-col justify-between overflow-hidden bg-gradient-to-br from-[#A8E6CF] via-[#8fd4ba] to-[#5a9c82] p-10 lg:flex">
-        
+
         {/* Decorative blobs */}
         <div className="pointer-events-none absolute -left-20 -top-20 h-72 w-72 rounded-full bg-white/20 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-32 -right-20 h-96 w-96 rounded-full bg-black/5 blur-3xl" />
-        
+
         {/* Logo */}
         <div className="relative z-10">
           <div className="flex items-center gap-3">
@@ -35,7 +35,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         {/* Center — Hero text */}
         <div className="relative z-10 -mt-12">
           <h2 className="max-w-md text-4xl font-bold leading-tight tracking-tight text-[#1c362b]">
-            Bắt đầu xây dựng <br/>
+            Bắt đầu xây dựng <br />
             <span className="text-white">Cửa hàng AI</span> của bạn ngay hôm nay.
           </h2>
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-[#2c5243]">
@@ -59,9 +59,17 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </div>
 
       {/* Right Panel — Form Content (Light Theme) */}
-      <div className="flex flex-1 flex-col bg-slate-50">
-        <div className="flex flex-1 items-center justify-center p-6">
-          <div className="w-full max-w-[440px]">{children}</div>
+      <div className="relative flex flex-1 flex-col bg-slate-50">
+        {/* Subtle grid pattern background */}
+        <div
+          className="absolute inset-0 opacity-[0.03] pointer-events-none"
+          style={{
+            backgroundImage: `linear-gradient(to right, #000 1px, transparent 1px), linear-gradient(to bottom, #000 1px, transparent 1px)`,
+            backgroundSize: `4rem 4rem`
+          }}
+        />
+        <div className="relative z-10 flex flex-1 items-center justify-center p-6">
+          <div className="w-full max-w-110">{children}</div>
         </div>
       </div>
     </div>

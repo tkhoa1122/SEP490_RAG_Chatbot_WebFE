@@ -6,18 +6,9 @@ import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { productAPI, variantAPI, categoryAPI, localCartAPI } from "@/infrastructure/api/storefrontAPI";
 import type { ProductResponse, VariantResponse, CategoryResponse } from "@/types/api";
+import type { ProductCard } from "@/types/storefront";
 
-interface ProductCard {
-  productId: number;
-  name: string;
-  brand: string;
-  categoryName: string;
-  description: string;
-  price: number;
-  imageUrl: string;
-  variantId: number;
-  stockQuantity: number;
-}
+
 
 function ProductSkeleton() {
   return (
@@ -118,7 +109,7 @@ function StorefrontContent() {
       {/* ── Hero Banner ──────────────────────────────────────────────────── */}
       {!searchQuery && (
         <section className="relative w-full bg-[#f4f7f6]">
-          <div className="absolute inset-0 bg-linear-to-r from-[#eef2f0] to-[#f4f7f6] z-0" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#eef2f0] to-[#f4f7f6] z-0" />
           <div className="mx-auto max-w-7xl px-4 py-20 sm:py-28 lg:px-8 relative z-10 flex flex-col md:flex-row items-center justify-between">
             <div className="max-w-xl text-left">
               <span className="inline-flex items-center rounded-full bg-[#2c5243]/10 px-3 py-1 text-sm font-semibold text-[#2c5243] mb-6">

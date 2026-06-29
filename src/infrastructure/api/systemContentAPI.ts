@@ -13,68 +13,24 @@
  */
 
 import mainAxiosClient from "./mainAxiosClient";
+import type {
+  SystemContent, ContentType, SystemContentStatus,
+  CreateSystemContentCommand, UpdateSystemContentCommand, SystemContentFilter,
+} from "@/infrastructure/dto/SystemContentDTO";
+import type { MainApiWrapper, MainPaginatedList } from "@/infrastructure/dto/MainApiWrapper";
 
-// ── Types ──────────────────────────────────────────────────────────────────────
-
-export type ContentType = "Markdown" | "Html";
-export type SystemContentStatus = "Draft" | "Published" | "Deleted";
-
-export interface SystemContent {
-  id: string;
-  title?: string;
-  key?: string;
-  content?: string;
-  contentType?: ContentType;
-  status?: SystemContentStatus;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface CreateSystemContentCommand {
-  title: string;
-  key: string;
-  content: string;
-  contentType: ContentType;
-  status: SystemContentStatus;
-}
-
-export interface UpdateSystemContentCommand {
-  title?: string;
-  key?: string;
-  content?: string;
-  contentType?: ContentType;
-  status?: SystemContentStatus;
-}
-
-export interface SystemContentFilter {
-  Title?: string;
-  Key?: string;
-  ContentType?: ContentType;
-  Status?: SystemContentStatus;
-  OrderBy?: string;
-  PageIndex?: number;
-  PageSize?: number;
-}
-
-interface ApiWrapper<T> {
-  success?: boolean;
-  message?: string;
-  data?: T;
-}
-
-interface PaginatedData<T> {
-  items: T[];
-  totalCount?: number;
-  pageIndex?: number;
-  pageSize?: number;
-}
+// Re-export DTOs
+export type {
+  SystemContent, ContentType, SystemContentStatus,
+  CreateSystemContentCommand, UpdateSystemContentCommand, SystemContentFilter,
+} from "@/infrastructure/dto/SystemContentDTO";
 
 // ── System Content API ─────────────────────────────────────────────────────────
 
 export const systemContentAPI = {
   /** GET /api/v1/system-contents — Lấy danh sách chính sách */
-  getAll: async (filter?: SystemContentFilter): Promise<ApiWrapper<PaginatedData<SystemContent>>> => {
-    const { data } = await mainAxiosClient.get<ApiWrapper<PaginatedData<SystemContent>>>(
+  getAll: async (filter?: SystemContentFilter): Promise<MainApiWrapper<MainPaginatedList<SystemContent>>> => {
+    const { data } = await mainAxiosClient.get<MainApiWrapper<MainPaginatedList<SystemContent>>>(
       "/system-contents",
       { params: filter }
     );
@@ -82,24 +38,24 @@ export const systemContentAPI = {
   },
 
   /** GET /api/v1/system-contents/{id} — Lấy chi tiết theo ID */
-  getById: async (id: string): Promise<ApiWrapper<SystemContent>> => {
-    const { data } = await mainAxiosClient.get<ApiWrapper<SystemContent>>(
+  getById: async (id: string): Promise<MainApiWrapper<SystemContent>> => {
+    const { data } = await mainAxiosClient.get<MainApiWrapper<SystemContent>>(
       `/system-contents/${id}`
     );
     return data;
   },
 
   /** GET /api/v1/system-contents/key/{key} — Lấy nội dung đã publish theo key */
-  getByKey: async (key: string): Promise<ApiWrapper<SystemContent>> => {
-    const { data } = await mainAxiosClient.get<ApiWrapper<SystemContent>>(
+  getByKey: async (key: string): Promise<MainApiWrapper<SystemContent>> => {
+    const { data } = await mainAxiosClient.get<MainApiWrapper<SystemContent>>(
       `/system-contents/key/${key}`
     );
     return data;
   },
 
   /** POST /api/v1/system-contents — Tạo nội dung mới */
-  create: async (body: CreateSystemContentCommand): Promise<ApiWrapper<SystemContent>> => {
-    const { data } = await mainAxiosClient.post<ApiWrapper<SystemContent>>(
+  create: async (body: CreateSystemContentCommand): Promise<MainApiWrapper<SystemContent>> => {
+    const { data } = await mainAxiosClient.post<MainApiWrapper<SystemContent>>(
       "/system-contents",
       body
     );
@@ -107,8 +63,8 @@ export const systemContentAPI = {
   },
 
   /** PUT /api/v1/system-contents/{id} — Cập nhật nội dung */
-  update: async (id: string, body: UpdateSystemContentCommand): Promise<ApiWrapper<SystemContent>> => {
-    const { data } = await mainAxiosClient.put<ApiWrapper<SystemContent>>(
+  update: async (id: string, body: UpdateSystemContentCommand): Promise<MainApiWrapper<SystemContent>> => {
+    const { data } = await mainAxiosClient.put<MainApiWrapper<SystemContent>>(
       `/system-contents/${id}`,
       body
     );
@@ -116,8 +72,8 @@ export const systemContentAPI = {
   },
 
   /** DELETE /api/v1/system-contents/{id} — Xóa mềm */
-  delete: async (id: string): Promise<ApiWrapper<null>> => {
-    const { data } = await mainAxiosClient.delete<ApiWrapper<null>>(
+  delete: async (id: string): Promise<MainApiWrapper<null>> => {
+    const { data } = await mainAxiosClient.delete<MainApiWrapper<null>>(
       `/system-contents/${id}`
     );
     return data;

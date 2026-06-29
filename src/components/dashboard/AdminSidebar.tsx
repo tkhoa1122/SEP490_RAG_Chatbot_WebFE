@@ -10,11 +10,21 @@ import {
   ShoppingBag,
   ChevronLeft,
   ChevronRight,
+  FileText,
+  BarChart3,
+  type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
-const NAV_ITEMS = [
+type NavItem = {
+  label: string;
+  href: string;
+  icon: LucideIcon;
+  badge?: string | number;
+};
+
+const NAV_ITEMS: NavItem[] = [
   {
     label: "Tổng quan",
     href: "/admin",
@@ -24,12 +34,21 @@ const NAV_ITEMS = [
     label: "Doanh nghiệp",
     href: "/admin/tenants",
     icon: Building2,
-    badge: "12",
   },
   {
     label: "Gói cước",
     href: "/admin/plans",
     icon: CreditCard,
+  },
+  {
+    label: "Quota & Tài nguyên",
+    href: "/admin/quota",
+    icon: BarChart3,
+  },
+  {
+    label: "Chính sách",
+    href: "/admin/policies",
+    icon: FileText,
   },
   {
     label: "Cài đặt",
@@ -45,14 +64,14 @@ export function AdminSidebar() {
   return (
     <aside
       className={cn(
-        "hidden shrink-0 border-r border-slate-800 bg-slate-950 text-slate-100 transition-all duration-300 md:flex md:flex-col",
-        collapsed ? "w-[68px]" : "w-64"
+        "hidden shrink-0 border-r border-[#1c362b] bg-[#0f1f18] text-slate-100 transition-all duration-300 md:flex md:flex-col",
+        collapsed ? "w-17" : "w-64"
       )}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center border-b border-slate-800 px-4">
+      <div className="flex h-16 items-center border-b border-[#1c362b] px-4">
         <div className="flex items-center gap-2.5 overflow-hidden">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#5a9c82] to-[#2c5243]">
             <ShoppingBag className="h-4 w-4 text-white" />
           </div>
           {!collapsed && (
@@ -60,7 +79,7 @@ export function AdminSidebar() {
               <p className="truncate text-sm font-bold tracking-tight text-white">
                 Smart Shopping
               </p>
-              <p className="text-[10px] font-medium uppercase tracking-widest text-slate-500">
+              <p className="text-[10px] font-medium uppercase tracking-widest text-[#86d9b0]">
                 SaaS Admin
               </p>
             </div>
@@ -83,21 +102,21 @@ export function AdminSidebar() {
               className={cn(
                 "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
                 isActive
-                  ? "bg-white/10 text-white"
-                  : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                  ? "bg-[#2c5243]/40 text-white"
+                  : "text-slate-400 hover:bg-[#2c5243]/20 hover:text-white"
               )}
             >
               <Icon
                 className={cn(
                   "h-4.5 w-4.5 shrink-0 transition-colors",
-                  isActive ? "text-indigo-400" : "text-slate-500 group-hover:text-slate-300"
+                  isActive ? "text-[#86d9b0]" : "text-slate-500 group-hover:text-slate-300"
                 )}
               />
               {!collapsed && (
                 <>
                   <span className="flex-1 truncate">{item.label}</span>
                   {item.badge && (
-                    <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-indigo-500/20 px-1.5 text-[10px] font-bold text-indigo-400">
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#86d9b0]/20 px-1.5 text-[10px] font-bold text-[#86d9b0]">
                       {item.badge}
                     </span>
                   )}
@@ -109,10 +128,10 @@ export function AdminSidebar() {
       </nav>
 
       {/* Collapse toggle */}
-      <div className="border-t border-slate-800 p-2">
+      <div className="border-t border-[#1c362b] p-2">
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="flex w-full items-center justify-center gap-2 rounded-lg py-2 text-xs text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-300"
+          className="flex w-full items-center justify-center gap-2 rounded-lg py-2 text-xs text-slate-500 transition-colors hover:bg-[#2c5243]/20 hover:text-slate-300"
         >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           {!collapsed && <span>Thu gọn</span>}

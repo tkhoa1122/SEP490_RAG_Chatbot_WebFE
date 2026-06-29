@@ -141,7 +141,7 @@ export default function BuyerAuthPage() {
       {/* ── Left Panel: Lookbook Image (Hidden on Mobile) ── */}
       <div className="relative hidden w-1/2 overflow-hidden lg:block">
         <div className="absolute inset-0 bg-[#A8E6CF]/20 mix-blend-multiply z-10" />
-        <div className="absolute inset-0 bg-linear-to-t from-[#2c5243]/80 via-transparent to-transparent z-10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#2c5243]/80 via-transparent to-transparent z-10" />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=1200"
