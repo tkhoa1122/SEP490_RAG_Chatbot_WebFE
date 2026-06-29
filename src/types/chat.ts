@@ -20,3 +20,12 @@ export interface SendMessagePayload {
   tenantId: string;
   message: string;
 }
+
+export interface ChatUIMessage {
+  id: string;
+  sender: "user" | "bot";
+  text: string;
+  isTyping?: boolean;
+  productCarousel?: { id: string; name: string; price: string; image: string }[];
+  markdownTable?: boolean;
+}

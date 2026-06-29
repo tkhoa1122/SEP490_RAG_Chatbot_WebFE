@@ -1,778 +1,193 @@
 "use client";
 
-import React, { useState, useRef, useCallback } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import {
-  Eye,
-  EyeOff,
-  LogIn,
-  Loader2,
-  Lock,
-  ShieldCheck,
-  ArrowRight,
-  User,
-  Phone,
-  Upload,
-  X,
-  Camera,
-  CheckCircle2,
-  Sparkles,
-} from "lucide-react";
-import Link from "next/link";
+import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { cn } from "@/lib/utils";
-import authAPI from "@/infrastructure/api/authAPI";
+import { Loader2, LogIn, Eye, EyeOff, ShieldCheck, Mail, LockKeyhole } from "lucide-react";
+import { mainAuthAPI, resolvePostLoginUrl } from "@/infrastructure/api/mainAuthAPI";
 
-// ─── Types ──────────────────────────────────────────────────────────────────
-
-type Step = 1 | 2 | 3 | 4;
-
-interface FieldErrors {
-  [key: string]: string;
-}
-
-// ─── Step Indicator (4 steps) ───────────────────────────────────────────────
-
-const STEP_LABELS = ["Đăng nhập", "Đổi mật khẩu", "Hồ sơ", "Hoàn tất"];
-
-function StepIndicator({ current }: { current: Step }) {
-  return (
-    <div className="mb-8 flex items-center justify-center gap-1.5">
-      {STEP_LABELS.map((label, i) => {
-        const stepNum = (i + 1) as Step;
-        const isDone = stepNum < current;
-        const isActive = stepNum === current;
-
-        return (
-          <React.Fragment key={label}>
-            <div className="flex flex-col items-center gap-1">
-              <div
-                className={cn(
-                  "flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold transition-all duration-300",
-                  isDone && "bg-[#A8E6CF] text-[#1c362b]",
-                  isActive && "bg-[#2c5243] text-white shadow-md shadow-[#2c5243]/30",
-                  !isDone && !isActive && "bg-slate-200 text-slate-500"
-                )}
-              >
-                {isDone ? "✓" : stepNum}
-              </div>
-              <span
-                className={cn(
-                  "hidden text-[10px] font-medium sm:block",
-                  isActive ? "text-[#2c5243]" : isDone ? "text-slate-500" : "text-slate-400"
-                )}
-              >
-                {label}
-              </span>
-            </div>
-            {i < STEP_LABELS.length - 1 && (
-              <div
-                className={cn(
-                  "mb-4 h-px w-6 transition-colors duration-300 sm:w-10",
-                  isDone ? "bg-[#A8E6CF]" : "bg-slate-200"
-                )}
-              />
-            )}
-          </React.Fragment>
-        );
-      })}
-    </div>
-  );
-}
-
-// ─── Password Strength ──────────────────────────────────────────────────────
-
-function getStrength(pw: string) {
-  if (!pw) return { score: 0, label: "", color: "" };
-  let s = 0;
-  if (pw.length >= 8) s++;
-  if (pw.length >= 12) s++;
-  if (/[A-Z]/.test(pw)) s++;
-  if (/[0-9]/.test(pw)) s++;
-  if (/[^A-Za-z0-9]/.test(pw)) s++;
-  if (s <= 1) return { score: s, label: "Rất yếu", color: "bg-red-500" };
-  if (s === 2) return { score: s, label: "Yếu", color: "bg-orange-500" };
-  if (s === 3) return { score: s, label: "Trung bình", color: "bg-yellow-500" };
-  if (s === 4) return { score: s, label: "Mạnh", color: "bg-[#A8E6CF]" };
-  return { score: s, label: "Rất mạnh", color: "bg-[#8fd4ba]" };
-}
-
-function PasswordStrength({ password }: { password: string }) {
-  const { score, label, color } = getStrength(password);
-  if (!password) return null;
-
-  const rules = [
-    { ok: password.length >= 8, text: "Ít nhất 8 ký tự" },
-    { ok: /[A-Z]/.test(password), text: "Có chữ hoa (A-Z)" },
-    { ok: /[0-9]/.test(password), text: "Có chữ số (0-9)" },
-    { ok: /[^A-Za-z0-9]/.test(password), text: "Có ký tự đặc biệt (!@#...)" },
-  ];
-
-  return (
-    <div className="mt-2.5 space-y-2">
-      {/* Bar */}
-      <div className="flex gap-1">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
-            <motion.div
-              className={cn("h-full rounded-full", i < score ? color : "")}
-              initial={{ width: 0 }}
-              animate={{ width: i < score ? "100%" : "0%" }}
-              transition={{ duration: 0.3, delay: i * 0.05 }}
-            />
-          </div>
-        ))}
-      </div>
-      <p className="text-[11px] text-slate-500">
-        Độ mạnh:{" "}
-        <span className={cn("font-semibold", {
-          "text-red-500": score <= 1,
-          "text-orange-500": score === 2,
-          "text-yellow-500": score === 3,
-          "text-[#5a9c82]": score >= 4,
-        })}>
-          {label}
-        </span>
-      </p>
-
-      {/* Rules */}
-      <ul className="space-y-1">
-        {rules.map((r) => (
-          <li key={r.text} className="flex items-center gap-2 text-[11px]">
-            <span
-              className={cn(
-                "flex h-3.5 w-3.5 items-center justify-center rounded-full text-[9px]",
-                r.ok ? "bg-[#A8E6CF]/50 text-[#1c362b]" : "bg-slate-100 text-slate-400"
-              )}
-            >
-              {r.ok ? "✓" : "·"}
-            </span>
-            <span className={r.ok ? "text-slate-700" : "text-slate-500"}>{r.text}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-// ─── Avatar Dropzone ────────────────────────────────────────────────────────
-
-function AvatarDropzone({
-  value,
-  onChange,
-}: {
-  value: File | null;
-  onChange: (f: File | null) => void;
-}) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [dragging, setDragging] = useState(false);
-  const preview = value ? URL.createObjectURL(value) : null;
-
-  const handleFile = useCallback(
-    (f: File | undefined) => {
-      if (f && f.type.startsWith("image/")) onChange(f);
-    },
-    [onChange]
-  );
-
-  return (
-    <div className="space-y-1.5">
-      <label className="text-sm font-semibold text-slate-700">Ảnh đại diện</label>
-      <div
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragging(false);
-          handleFile(e.dataTransfer.files[0]);
-        }}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onClick={() => !value && inputRef.current?.click()}
-        className={cn(
-          "relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all",
-          "min-h-35 overflow-hidden bg-slate-50",
-          dragging
-            ? "border-[#A8E6CF] bg-[#A8E6CF]/10"
-            : value
-            ? "cursor-default border-[#A8E6CF]/40 bg-[#A8E6CF]/5"
-            : "border-slate-200 hover:border-slate-300 hover:bg-slate-100"
-        )}
-      >
-        {value && preview ? (
-          <div className="relative h-full w-full">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={preview} alt="Preview" className="h-34.5 w-full object-cover" />
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity hover:opacity-100">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onChange(null);
-                }}
-                className="flex items-center gap-1.5 rounded-lg bg-white/20 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-sm hover:bg-white/30"
-              >
-                <X className="h-3 w-3" />
-                Xóa ảnh
-              </button>
-            </div>
-            <button
-              type="button"
-              className="absolute bottom-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-[#2c5243] shadow-md"
-              onClick={(e) => {
-                e.stopPropagation();
-                inputRef.current?.click();
-              }}
-            >
-              <Camera className="h-3.5 w-3.5 text-white" />
-            </button>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-2 px-6 py-6 text-center">
-            <div
-              className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-full",
-                dragging ? "bg-[#A8E6CF]/40 text-[#1c362b]" : "bg-white text-slate-400 shadow-sm border border-slate-100"
-              )}
-            >
-              <Upload className="h-4.5 w-4.5" />
-            </div>
-            <p className="text-xs font-medium text-slate-500">
-              {dragging ? "Thả ảnh vào đây..." : "Kéo thả hoặc nhấn để chọn ảnh"}
-            </p>
-            <p className="text-[10px] text-slate-400">PNG, JPG, WEBP · Tối đa 5MB</p>
-          </div>
-        )}
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => handleFile(e.target.files?.[0])}
-        />
-      </div>
-    </div>
-  );
-}
-
-// ─── Shared form input ──────────────────────────────────────────────────────
-
-const INPUT_CLASS = cn(
-  "h-11 w-full rounded-lg border bg-white px-4 text-sm text-slate-900 placeholder:text-slate-400 shadow-sm",
-  "transition-all outline-none",
-  "focus:ring-2",
-  "disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500"
-);
-
-function FieldError({ message }: { message?: string }) {
-  if (!message) return null;
-  return (
-    <motion.p
-      initial={{ opacity: 0, y: -4 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="mt-1 text-xs font-medium text-red-500"
-    >
-      {message}
-    </motion.p>
-  );
-}
-
-// ─── Step Animation Wrapper ─────────────────────────────────────────────────
-
-const slideVariants = {
-  enter: { opacity: 0, x: 40 },
-  center: { opacity: 1, x: 0 },
-  exit: { opacity: 0, x: -40 },
-};
-
-function StepWrapper({ stepKey, children }: { stepKey: string; children: React.ReactNode }) {
-  return (
-    <motion.div
-      key={stepKey}
-      variants={slideVariants}
-      initial="enter"
-      animate="center"
-      exit="exit"
-      transition={{ duration: 0.35, ease: "easeInOut" }}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
-// ─── Main Page Component ────────────────────────────────────────────────────
-
-export default function LoginPage() {
+export default function AdminLoginPage() {
   const router = useRouter();
-  const [step, setStep] = useState<Step>(1);
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "";
+  const reason = searchParams.get("reason");
 
-  // ── Step 1 state
-  const [loginForm, setLoginForm] = useState({ email: "", password: "" });
-  const [showLoginPass, setShowLoginPass] = useState(false);
-  const [loginLoading, setLoginLoading] = useState(false);
-  const [loginErrors, setLoginErrors] = useState<FieldErrors>({});
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // ── Step 2 state
-  const [pwForm, setPwForm] = useState({ current: "", newPass: "", confirm: "" });
-  const [showPw, setShowPw] = useState({ current: false, newPass: false, confirm: false });
-  const [pwLoading, setPwLoading] = useState(false);
-  const [pwErrors, setPwErrors] = useState<FieldErrors>({});
+  const reasonMessage: Record<string, string> = {
+    SESSION_EXPIRED: "Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.",
+    UNKNOWN_ROLE: "Tài khoản không có quyền truy cập hệ thống.",
+    NO_TENANT: "Tài khoản chưa được gán doanh nghiệp. Liên hệ Admin.",
+  };
 
-  // ── Step 3 state
-  const [profileForm, setProfileForm] = useState({ fullName: "", phone: "" });
-  const [avatar, setAvatar] = useState<File | null>(null);
-  const [profileLoading, setProfileLoading] = useState(false);
-  const [profileErrors, setProfileErrors] = useState<FieldErrors>({});
-
-  // ── Handlers ──────────────────────────────────────────────────────────────
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const errors: FieldErrors = {};
-
-    if (!loginForm.email.trim()) errors.email = "Email không được để trống.";
-    else if (!/\S+@\S+\.\S+/.test(loginForm.email)) errors.email = "Email không hợp lệ.";
-    if (!loginForm.password.trim()) errors.password = "Mật khẩu không được để trống.";
-
-    if (Object.keys(errors).length > 0) {
-      setLoginErrors(errors);
-      return;
+  // Load saved email nếu đã chọn "Ghi nhớ đăng nhập" lần trước
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedEmail = localStorage.getItem("remembered_email");
+      if (savedEmail) {
+        setEmail(savedEmail);
+        setRememberMe(true);
+      }
     }
+  }, []);
 
-    setLoginErrors({});
-    setLoginLoading(true);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
 
     try {
-      // ── Gọi API thật: POST /auth/login ─────────────────────────────────
-      const res = await authAPI.login({
-        email: loginForm.email,
-        password: loginForm.password,
-      });
-
-      if (res.data?.token) {
-        // Đăng nhập thành công → redirect về trang chủ cửa hàng
-        // (token đã được authAPI.login lưu vào localStorage + cookie)
-        router.push("/eco-fashion");
+      // Ghi nhớ / xóa email
+      if (rememberMe) {
+        localStorage.setItem("remembered_email", email);
       } else {
-        setLoginErrors({ password: res.message || "Đăng nhập thất bại." });
+        localStorage.removeItem("remembered_email");
       }
-    } catch (err: any) {
-      // Xử lý lỗi từ BE (sai email/mật khẩu, account không tồn tại...)
-      const msg =
-        err?.response?.data?.message ||
-        "Sai email hoặc mật khẩu. Vui lòng thử lại.";
-      setLoginErrors({ password: msg });
+
+      const res = await mainAuthAPI.login({ email, password });
+
+      if (!res?.data?.accessToken) {
+        setError(res?.message ?? "Đăng nhập thất bại. Kiểm tra lại thông tin.");
+        return;
+      }
+
+      const { role, tenantId } = res.data;
+
+      const redirectTo = callbackUrl || resolvePostLoginUrl(role ?? "", tenantId);
+      router.replace(redirectTo);
+    } catch (err: unknown) {
+
+      const axiosError = err as { response?: { data?: { message?: string }; status?: number } };
+      if (axiosError?.response?.status === 401) {
+        setError("Email hoặc mật khẩu không đúng.");
+      } else {
+        setError(axiosError?.response?.data?.message ?? "Lỗi kết nối đến máy chủ. Thử lại sau.");
+      }
     } finally {
-      setLoginLoading(false);
+      setLoading(false);
     }
   };
-
-  const handlePasswordReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const errors: FieldErrors = {};
-
-    if (!pwForm.current.trim()) errors.current = "Vui lòng nhập mật khẩu tạm thời.";
-    if (!pwForm.newPass.trim()) errors.newPass = "Vui lòng nhập mật khẩu mới.";
-    else if (pwForm.newPass.length < 8) errors.newPass = "Mật khẩu mới tối thiểu 8 ký tự.";
-    if (!pwForm.confirm.trim()) errors.confirm = "Vui lòng xác nhận mật khẩu mới.";
-    else if (pwForm.confirm !== pwForm.newPass) errors.confirm = "Mật khẩu xác nhận không khớp.";
-
-    if (Object.keys(errors).length > 0) {
-      setPwErrors(errors);
-      return;
-    }
-
-    setPwErrors({});
-    setPwLoading(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    setPwLoading(false);
-    setStep(3);
-  };
-
-  const handleProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const errors: FieldErrors = {};
-
-    if (!profileForm.fullName.trim()) errors.fullName = "Họ và tên không được để trống.";
-    if (!profileForm.phone.trim()) errors.phone = "Số điện thoại không được để trống.";
-    else if (!/^0\d{9}$/.test(profileForm.phone.replace(/\s/g, "")))
-      errors.phone = "Số điện thoại không hợp lệ (VD: 0912345678).";
-
-    if (Object.keys(errors).length > 0) {
-      setProfileErrors(errors);
-      return;
-    }
-
-    setProfileErrors({});
-    setProfileLoading(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    setProfileLoading(false);
-    setStep(4);
-    setTimeout(() => router.push("/eco-fashion/business"), 2500);
-  };
-
-  // ── Form Input classes
-  const inputCls = cn(INPUT_CLASS, "border-slate-200 focus:border-[#A8E6CF] focus:ring-[#A8E6CF]/30");
-  const inputErrorCls = "border-red-300 focus:border-red-500 focus:ring-red-500/20";
 
   return (
-    <>
-      <StepIndicator current={step} />
+    <div className="w-full rounded-4xl bg-white p-8 sm:p-10 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.1)] border border-slate-100">
 
-      <AnimatePresence mode="wait">
-        {/* ═══ STEP 1: LOGIN ═══ */}
-        {step === 1 && (
-          <StepWrapper stepKey="login">
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Đăng nhập</h1>
-              <p className="mt-1 text-sm text-slate-500">
-                Nhập email và mật khẩu đã được cung cấp qua email
-              </p>
+      {/* Form Header */}
+      <div className="mb-8 flex flex-col items-center text-center">
+        <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#A8E6CF]/30 shadow-inner">
+          <ShieldCheck className="h-7 w-7 text-[#2c5243]" />
+        </div>
+        <h2 className="text-2xl font-extrabold text-[#1c362b] tracking-tight">Chào mừng trở lại</h2>
+        <p className="mt-2 text-sm text-slate-500">Đăng nhập vào hệ thống quản trị SaaS</p>
+      </div>
+
+      {/* Reason Alert */}
+      {reason && reasonMessage[reason] && (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm font-medium text-amber-700">
+          {reasonMessage[reason]}
+        </div>
+      )}
+
+      {/* Error Alert */}
+      {error && (
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-sm font-medium text-red-600">
+          {error}
+        </div>
+      )}
+
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Email */}
+        <div className="space-y-2">
+          <label htmlFor="admin-email" className="text-[13px] font-semibold text-[#1c362b]">
+            Địa chỉ Email
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+              <Mail className="h-4 w-4 text-slate-400" />
             </div>
+            <input
+              id="admin-email"
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="admin@example.com"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-4 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-[#5a9c82] focus:outline-none focus:ring-4 focus:ring-[#5a9c82]/10 transition-all"
+            />
+          </div>
+        </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-xl shadow-slate-200/50">
-              <form onSubmit={handleLogin} className="space-y-4" noValidate>
-                {/* Email */}
-                <div className="space-y-1.5">
-                  <label htmlFor="login-email" className="text-sm font-semibold text-slate-700">
-                    Email
-                  </label>
-                  <input
-                    id="login-email"
-                    type="email"
-                    autoComplete="email"
-                    placeholder="you@company.com"
-                    value={loginForm.email}
-                    onChange={(e) => {
-                      setLoginForm((p) => ({ ...p, email: e.target.value }));
-                      if (loginErrors.email) setLoginErrors((p) => ({ ...p, email: "" }));
-                    }}
-                    disabled={loginLoading}
-                    className={cn(inputCls, loginErrors.email && inputErrorCls)}
-                  />
-                  <FieldError message={loginErrors.email} />
-                </div>
-
-                {/* Password */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label htmlFor="login-password" className="text-sm font-semibold text-slate-700">
-                      Mật khẩu
-                    </label>
-                    <Link
-                      href="/forgot-password"
-                      className="text-xs text-[#2c5243] transition-colors hover:underline"
-                    >
-                      Quên mật khẩu?
-                    </Link>
-                  </div>
-                  <div className="relative">
-                    <input
-                      id="login-password"
-                      type={showLoginPass ? "text" : "password"}
-                      autoComplete="current-password"
-                      placeholder="••••••••"
-                      value={loginForm.password}
-                      onChange={(e) => {
-                        setLoginForm((p) => ({ ...p, password: e.target.value }));
-                        if (loginErrors.password) setLoginErrors((p) => ({ ...p, password: "" }));
-                      }}
-                      disabled={loginLoading}
-                      className={cn(inputCls, "pr-11", loginErrors.password && inputErrorCls)}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowLoginPass(!showLoginPass)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                      aria-label={showLoginPass ? "Ẩn" : "Hiện"}
-                    >
-                      {showLoginPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                  <FieldError message={loginErrors.password} />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loginLoading}
-                  className={cn(
-                    "relative mt-2 h-11 w-full overflow-hidden rounded-lg text-sm font-semibold text-[#1c362b] transition-all",
-                    "bg-[#A8E6CF] hover:bg-[#97d0ba] shadow-sm hover:shadow",
-                    "active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-                  )}
-                >
-                  {loginLoading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Đang đăng nhập...
-                    </span>
-                  ) : (
-                    <span className="flex items-center justify-center gap-2">
-                      <LogIn className="h-4 w-4" />
-                      Đăng nhập
-                    </span>
-                  )}
-                </button>
-              </form>
-
-              <div className="mt-6 flex flex-col items-center justify-center gap-3">
-                <p className="text-center text-sm text-slate-500">
-                  Chưa có tài khoản?{" "}
-                  <Link href="/register" className="font-semibold text-[#2c5243] hover:underline">
-                    Đăng ký doanh nghiệp
-                  </Link>
-                </p>
-                <p className="text-[10px] text-slate-400">
-                  Bằng cách đăng nhập, bạn đồng ý với{" "}
-                  <Link href="#" className="underline hover:text-slate-500">
-                    Điều khoản dịch vụ
-                  </Link>
-                </p>
-              </div>
+        {/* Password */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label htmlFor="admin-password" className="text-[13px] font-semibold text-[#1c362b]">
+              Mật khẩu
+            </label>
+          </div>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
+              <LockKeyhole className="h-4 w-4 text-slate-400" />
             </div>
-          </StepWrapper>
-        )}
+            <input
+              id="admin-password"
+              type={showPassword ? "text" : "password"}
+              required
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••••••"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-12 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-[#5a9c82] focus:outline-none focus:ring-4 focus:ring-[#5a9c82]/10 transition-all"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-2 rounded-lg hover:bg-slate-100"
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+        </div>
 
-        {/* ═══ STEP 2: FORCE PASSWORD RESET ═══ */}
-        {step === 2 && (
-          <StepWrapper stepKey="password">
-            <div className="mb-6">
-              <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-[#A8E6CF]/30">
-                <Lock className="h-5 w-5 text-[#2c5243]" />
-              </div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Đổi mật khẩu</h1>
-              <p className="mt-1 text-sm text-slate-500">
-                Bạn đang dùng mật khẩu tạm. Hãy đặt mật khẩu mới ngay bây giờ.
-              </p>
-            </div>
+        {/* Remember Me */}
+        <div className="flex items-center gap-2">
+          <input
+            id="remember-me"
+            type="checkbox"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+            className="h-4 w-4 rounded border-slate-300 text-[#2c5243] focus:ring-[#5a9c82] cursor-pointer accent-[#2c5243]"
+          />
+          <label htmlFor="remember-me" className="text-sm text-slate-600 cursor-pointer select-none">
+            Ghi nhớ đăng nhập
+          </label>
+        </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-xl shadow-slate-200/50">
-              <form onSubmit={handlePasswordReset} className="space-y-4" noValidate>
-                {[
-                  { key: "current" as const, label: "Mật khẩu tạm thời", auto: "current-password" },
-                  { key: "newPass" as const, label: "Mật khẩu mới", auto: "new-password" },
-                  { key: "confirm" as const, label: "Xác nhận mật khẩu mới", auto: "new-password" },
-                ].map(({ key, label, auto }) => (
-                  <div key={key} className="space-y-1.5">
-                    <label htmlFor={`pw-${key}`} className="text-sm font-semibold text-slate-700">
-                      {label}
-                    </label>
-                    <div className="relative">
-                      <input
-                        id={`pw-${key}`}
-                        type={showPw[key] ? "text" : "password"}
-                        autoComplete={auto}
-                        placeholder="••••••••"
-                        value={pwForm[key]}
-                        onChange={(e) => {
-                          setPwForm((p) => ({ ...p, [key]: e.target.value }));
-                          if (pwErrors[key]) setPwErrors((p) => ({ ...p, [key]: "" }));
-                        }}
-                        disabled={pwLoading}
-                        className={cn(inputCls, "pr-11", pwErrors[key] && inputErrorCls)}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPw((p) => ({ ...p, [key]: !p[key] }))}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                      >
-                        {showPw[key] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                    <FieldError message={pwErrors[key]} />
+        {/* Submit */}
+        <button
+          type="submit"
+          disabled={loading}
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[#2c5243] px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#2c5243]/20 transition-all hover:bg-[#1c362b] focus:outline-none focus:ring-4 focus:ring-[#2c5243]/20 disabled:opacity-70"
+        >
+          {loading ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            <>
+              Đăng nhập <LogIn className="h-4 w-4 ml-1" />
+            </>
+          )}
+        </button>
+      </form>
 
-                    {key === "newPass" && pwForm.newPass && (
-                      <PasswordStrength password={pwForm.newPass} />
-                    )}
-                    {key === "confirm" && pwForm.confirm && pwForm.newPass && (
-                      <p
-                        className={cn(
-                          "mt-1 text-[11px] font-medium",
-                          pwForm.confirm === pwForm.newPass ? "text-[#5a9c82]" : "text-red-500"
-                        )}
-                      >
-                        {pwForm.confirm === pwForm.newPass ? "✓ Mật khẩu khớp" : "✗ Mật khẩu chưa khớp"}
-                      </p>
-                    )}
-                  </div>
-                ))}
-
-                <button
-                  type="submit"
-                  disabled={pwLoading}
-                  className={cn(
-                    "relative mt-2 h-11 w-full overflow-hidden rounded-lg text-sm font-semibold text-[#1c362b] transition-all",
-                    "bg-[#A8E6CF] hover:bg-[#97d0ba] shadow-sm hover:shadow",
-                    "active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-                  )}
-                >
-                  {pwLoading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Đang lưu...
-                    </span>
-                  ) : (
-                    <span className="flex items-center justify-center gap-2">
-                      <ShieldCheck className="h-4 w-4" />
-                      Đặt mật khẩu mới
-                      <ArrowRight className="h-4 w-4" />
-                    </span>
-                  )}
-                </button>
-              </form>
-            </div>
-          </StepWrapper>
-        )}
-
-        {/* ═══ STEP 3: COMPLETE PROFILE ═══ */}
-        {step === 3 && (
-          <StepWrapper stepKey="profile">
-            <div className="mb-6">
-              <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-[#A8E6CF]/30">
-                <User className="h-5 w-5 text-[#2c5243]" />
-              </div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">Hoàn thiện hồ sơ</h1>
-              <p className="mt-1 text-sm text-slate-500">
-                Thông tin này sẽ hiển thị trên Dashboard của bạn
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-xl shadow-slate-200/50">
-              <form onSubmit={handleProfile} className="space-y-4" noValidate>
-                {/* Full Name */}
-                <div className="space-y-1.5">
-                  <label htmlFor="profile-name" className="text-sm font-semibold text-slate-700">
-                    Họ và Tên <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                    <input
-                      id="profile-name"
-                      type="text"
-                      autoComplete="name"
-                      placeholder="Nguyễn Văn A"
-                      value={profileForm.fullName}
-                      onChange={(e) => {
-                        setProfileForm((p) => ({ ...p, fullName: e.target.value }));
-                        if (profileErrors.fullName) setProfileErrors((p) => ({ ...p, fullName: "" }));
-                      }}
-                      disabled={profileLoading}
-                      className={cn(inputCls, "pl-10", profileErrors.fullName && inputErrorCls)}
-                    />
-                  </div>
-                  <FieldError message={profileErrors.fullName} />
-                </div>
-
-                {/* Phone */}
-                <div className="space-y-1.5">
-                  <label htmlFor="profile-phone" className="text-sm font-semibold text-slate-700">
-                    Số điện thoại <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                    <input
-                      id="profile-phone"
-                      type="tel"
-                      autoComplete="tel"
-                      placeholder="0912 345 678"
-                      value={profileForm.phone}
-                      onChange={(e) => {
-                        setProfileForm((p) => ({ ...p, phone: e.target.value }));
-                        if (profileErrors.phone) setProfileErrors((p) => ({ ...p, phone: "" }));
-                      }}
-                      disabled={profileLoading}
-                      className={cn(inputCls, "pl-10", profileErrors.phone && inputErrorCls)}
-                    />
-                  </div>
-                  <FieldError message={profileErrors.phone} />
-                </div>
-
-                {/* Avatar */}
-                <AvatarDropzone value={avatar} onChange={setAvatar} />
-
-                <button
-                  type="submit"
-                  disabled={profileLoading}
-                  className={cn(
-                    "relative mt-2 h-11 w-full overflow-hidden rounded-lg text-sm font-semibold text-[#1c362b] transition-all",
-                    "bg-[#A8E6CF] hover:bg-[#97d0ba] shadow-sm hover:shadow",
-                    "active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-                  )}
-                >
-                  {profileLoading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Đang lưu hồ sơ...
-                    </span>
-                  ) : (
-                    <span className="flex items-center justify-center gap-2">
-                      Hoàn tất
-                      <ArrowRight className="h-4 w-4" />
-                    </span>
-                  )}
-                </button>
-
-                <p className="text-center text-[10px] text-slate-400">
-                  Bạn có thể cập nhật thông tin này bất cứ lúc nào trong phần Cài đặt
-                </p>
-              </form>
-            </div>
-          </StepWrapper>
-        )}
-
-        {/* ═══ STEP 4: SUCCESS ═══ */}
-        {step === 4 && (
-          <StepWrapper stepKey="success">
-            <div className="flex flex-col items-center py-12 text-center">
-              {/* Animated check */}
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.1 }}
-                className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#A8E6CF]/30"
-              >
-                <CheckCircle2 className="h-10 w-10 text-[#2c5243]" />
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                <div className="mb-1 flex items-center justify-center gap-2">
-                  <Sparkles className="h-5 w-5 text-amber-500" />
-                  <h1 className="text-2xl font-bold text-slate-900">Chào mừng đến với hệ thống!</h1>
-                  <Sparkles className="h-5 w-5 text-amber-500" />
-                </div>
-                <p className="mt-2 text-sm text-slate-500">
-                  Tài khoản của bạn đã được thiết lập hoàn tất.
-                </p>
-                <p className="mt-1 text-sm text-slate-500">
-                  Đang chuyển hướng đến Dashboard...
-                </p>
-              </motion.div>
-
-              {/* Loading dots */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6 }}
-                className="mt-8 flex items-center gap-1.5"
-              >
-                {[0, 1, 2].map((i) => (
-                  <motion.div
-                    key={i}
-                    className="h-2 w-2 rounded-full bg-[#5a9c82]"
-                    animate={{ opacity: [0.3, 1, 0.3] }}
-                    transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
-                  />
-                ))}
-              </motion.div>
-            </div>
-          </StepWrapper>
-        )}
-      </AnimatePresence>
-    </>
+      {/* Footer Text */}
+      <div className="mt-8 text-center text-[13px] font-medium text-slate-500">
+        Chỉ dành cho Admin, Business Owner và Catalog Team. <br />
+        <a href="#" className="text-[#5a9c82] hover:underline hover:text-[#2c5243]">Liên hệ hỗ trợ</a>
+      </div>
+    </div>
   );
 }

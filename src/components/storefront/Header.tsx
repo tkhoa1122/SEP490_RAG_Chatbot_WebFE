@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { Search, ShoppingBag, Menu, User, X } from "lucide-react";
+import { Search, ShoppingBag, Menu, User, LogOut, UserCircle, ChevronDown } from "lucide-react";
+import { useAppDispatch, useAppSelector } from "@/application/hooks/reduxHooks";
+import { logout } from "@/application/slices/userSlice";
 import { authAPI } from "@/infrastructure/api/authAPI";
 import { localCartAPI } from "@/infrastructure/api/storefrontAPI";
 
@@ -12,16 +14,17 @@ export function Header() {
   const tenantId = params.tenant_id as string;
   const router = useRouter();
   const searchParams = useSearchParams();
-  
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const dispatch = useAppDispatch();
+
+  // ── Đọc trạng thái đăng nhập từ Redux Store (reactive, không cần F5) ──
+  const isAuthenticated = useAppSelector((state) => state.user.isAuthenticated);
+  const user = useAppSelector((state) => state.user.user);
+
   const [cartCount, setCartCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
 
   useEffect(() => {
-    setIsLoggedIn(authAPI.isLoggedIn());
     setCartCount(localCartAPI.getTotalCount());
-
-    // Custom event to update cart count from anywhere
     const handleCartUpdate = () => setCartCount(localCartAPI.getTotalCount());
     window.addEventListener("cartUpdated", handleCartUpdate);
     return () => window.removeEventListener("cartUpdated", handleCartUpdate);
@@ -37,15 +40,17 @@ export function Header() {
   };
 
   const handleLogout = () => {
+    // Xóa token khỏi localStorage/cookie
     authAPI.logout();
-    setIsLoggedIn(false);
-    router.refresh();
+    // Xóa state trong Redux (reactive toàn bộ app)
+    dispatch(logout());
+    router.push(`/${tenantId}`);
   };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white shadow-sm">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        {/* Left: Logo & Menu Toggle */}
+        {/* Left: Logo & Nav */}
         <div className="flex items-center gap-4">
           <button className="lg:hidden text-gray-500 hover:text-gray-900 transition-colors">
             <Menu className="h-6 w-6" />
@@ -58,8 +63,7 @@ export function Header() {
               {tenantId.replace(/-/g, " ")}
             </span>
           </Link>
-          
-          {/* Main Desktop Navigation */}
+
           <nav className="hidden lg:ml-10 lg:flex lg:gap-8">
             <Link href={`/${tenantId}#products`} className="text-sm font-semibold text-gray-900 hover:text-[#2c5243] transition-colors">
               MỚI NHẤT
@@ -74,7 +78,7 @@ export function Header() {
         </div>
 
         {/* Right: Search, User, Cart */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {/* Search bar */}
           <form onSubmit={handleSearch} className="hidden md:flex items-center relative">
             <input
@@ -90,25 +94,20 @@ export function Header() {
           </form>
 
           {/* User & Auth */}
-          {isLoggedIn ? (
-            <div className="flex items-center gap-4 ml-2">
-              <button
-                onClick={handleLogout}
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-50 text-slate-600 transition-colors hover:bg-slate-100 hover:text-red-500"
-                title="Đăng xuất"
-              >
-                <User className="h-5 w-5" />
-              </button>
-            </div>
+          {isAuthenticated ? (
+            <UserDropdown
+              tenantId={tenantId}
+              displayName={user?.name || user?.email || "Tài khoản"}
+              onLogout={handleLogout}
+            />
           ) : (
-            <div className="flex items-center gap-3 ml-2">
-              <Link
-                href={`/${tenantId}/login`}
-                className="text-sm font-medium text-slate-600 hover:text-[#2c5243] transition-colors hidden sm:block"
-              >
-                Đăng nhập
-              </Link>
-            </div>
+            <Link
+              href={`/${tenantId}/login`}
+              className="flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-slate-600 hover:border-[#2c5243] hover:text-[#2c5243] transition-colors"
+            >
+              <User className="h-4 w-4" />
+              <span className="hidden sm:inline">Đăng nhập</span>
+            </Link>
           )}
 
           {/* Cart Icon */}
@@ -127,5 +126,91 @@ export function Header() {
         </div>
       </div>
     </header>
+  );
+}
+
+// ── User Dropdown ────────────────────────────────────────────────────────────
+
+interface UserDropdownProps {
+  tenantId: string;
+  displayName: string;
+  onLogout: () => void;
+}
+
+function UserDropdown({ tenantId, displayName, onLogout }: UserDropdownProps) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Đóng dropdown khi click bên ngoài
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div ref={rootRef} className="relative">
+      {/* Trigger button */}
+      <button
+        id="user-menu-button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-haspopup="true"
+        className="flex items-center gap-2 rounded-full bg-[#2c5243]/10 py-1.5 pl-2 pr-3 text-sm font-medium text-[#2c5243] transition-all hover:bg-[#2c5243]/20 focus:outline-none focus:ring-2 focus:ring-[#2c5243]/30"
+      >
+        {/* Avatar vòng tròn chữ cái đầu */}
+        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#2c5243] text-[10px] font-bold text-white uppercase shrink-0">
+          {displayName.charAt(0)}
+        </span>
+        <span className="max-w-18 truncate hidden sm:inline">{displayName}</span>
+        <ChevronDown
+          className={`h-3.5 w-3.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {/* Dropdown panel */}
+      {open && (
+        <div
+          role="menu"
+          aria-labelledby="user-menu-button"
+          className="absolute right-0 mt-2 w-52 origin-top-right rounded-2xl border border-gray-100 bg-white shadow-xl ring-1 ring-black/5 overflow-hidden"
+        >
+          {/* User info header */}
+          <div className="bg-[#2c5243]/5 px-4 py-3 border-b border-gray-100">
+            <p className="text-xs text-gray-500">Đã đăng nhập</p>
+            <p className="mt-0.5 truncate text-sm font-semibold text-[#2c5243]">{displayName}</p>
+          </div>
+
+          {/* Menu items */}
+          <div className="py-1">
+            <Link
+              href={`/${tenantId}/login`}
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-[#2c5243]/5 hover:text-[#2c5243] transition-colors"
+            >
+              <UserCircle className="h-4 w-4 shrink-0" />
+              Hồ sơ của tôi
+            </Link>
+
+            <div className="mx-3 my-1 border-t border-gray-100" />
+
+            <button
+              role="menuitem"
+              onClick={() => { setOpen(false); onLogout(); }}
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
+            >
+              <LogOut className="h-4 w-4 shrink-0" />
+              Đăng xuất
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

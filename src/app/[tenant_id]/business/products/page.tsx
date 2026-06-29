@@ -1,10 +1,11 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
+import { ProductsClient } from "@/components/business/products/ProductsClient";
+
 export const metadata: Metadata = { title: "Quản lý sản phẩm" };
-export default function ProductsPage() {
-  return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">Quản lý sản phẩm</h1>
-      {/* TODO: ProductsDataTable, AddProductButton */}
-    </div>
-  );
+
+export default function ProductsPage({ params }: { params: Promise<{ tenant_id: string }> }) {
+  // Pass the promise directly to the client component to be unwrapped with React.use()
+  const tenantIdPromise = params.then(p => p.tenant_id);
+
+  return <ProductsClient tenantIdPromise={tenantIdPromise} />;
 }

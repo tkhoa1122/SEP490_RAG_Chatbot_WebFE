@@ -1,8 +1,12 @@
-import { useUserStore } from "@/application/store/userStore";
-import type { UserRole } from "@/types/user";
+"use client";
+
+import { useAppDispatch, useAppSelector } from "./reduxHooks";
+import { setUser, logout } from "../slices/userSlice";
+import type { UserRole } from "@/domain/entities/User";
 
 export function useAuth() {
-  const { user, token, isAuthenticated, setUser, logout } = useUserStore();
+  const dispatch = useAppDispatch();
+  const { user, token, isAuthenticated } = useAppSelector((state) => state.user);
 
   const hasRole = (role: UserRole) => user?.role === role;
   const hasAnyRole = (roles: UserRole[]) => roles.some((r) => user?.role === r);
@@ -13,7 +17,7 @@ export function useAuth() {
     isAuthenticated,
     hasRole,
     hasAnyRole,
-    setUser,
-    logout,
+    setUser: (userData: any, tokenVal: string) => dispatch(setUser({ user: userData, token: tokenVal })),
+    logout: () => dispatch(logout()),
   };
 }

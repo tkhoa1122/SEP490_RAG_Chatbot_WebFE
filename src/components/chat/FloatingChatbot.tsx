@@ -4,21 +4,13 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, X, Send, Paperclip, Bot, User, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { ChatUIMessage } from "@/types/chat";
 
 // --- Mock Data & Markdown Renderers ---
 
 const BOT_TYPING_DELAY = 1000; // ms
 
-interface Message {
-  id: string;
-  sender: "user" | "bot";
-  text: string;
-  isTyping?: boolean;
-  productCarousel?: { id: string; name: string; price: string; image: string }[];
-  markdownTable?: boolean;
-}
-
-const INITIAL_MESSAGES: Message[] = [
+const INITIAL_MESSAGES: ChatUIMessage[] = [
   {
     id: "msg-1",
     sender: "bot",
@@ -46,7 +38,7 @@ function MarkdownText({ text }: { text: string }) {
   );
 }
 
-function ProductCarousel({ products }: { products: NonNullable<Message["productCarousel"]> }) {
+function ProductCarousel({ products }: { products: NonNullable<ChatUIMessage["productCarousel"]> }) {
   return (
     <div className="mt-3 flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
       {products.map((p) => (
@@ -106,7 +98,7 @@ function SizeChartTable() {
 
 export function FloatingChatbot() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
+  const [messages, setMessages] = useState<ChatUIMessage[]>(INITIAL_MESSAGES);
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -123,7 +115,7 @@ export function FloatingChatbot() {
   const handleSend = () => {
     if (!inputValue.trim()) return;
 
-    const userMsg: Message = { id: Date.now().toString(), sender: "user", text: inputValue };
+    const userMsg: ChatUIMessage = { id: Date.now().toString(), sender: "user", text: inputValue };
     setMessages((prev) => [...prev, userMsg]);
     setInputValue("");
 
@@ -137,7 +129,7 @@ export function FloatingChatbot() {
         // Remove typing indicator
         setMessages((prev) => prev.filter((m) => m.id !== typingId));
 
-        let botMsg: Message;
+        let botMsg: ChatUIMessage;
 
         if (userMsg.text.toLowerCase().includes("áo thun") || userMsg.text.toLowerCase().includes("trắng")) {
           botMsg = {
@@ -179,7 +171,7 @@ export function FloatingChatbot() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsOpen(true)}
-            className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-[#A8E6CF] to-[#8fd4ba] text-[#2c5243] shadow-xl ring-4 ring-[#A8E6CF]/30 transition-shadow hover:shadow-2xl hover:ring-[#A8E6CF]/50"
+            className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#A8E6CF] to-[#8fd4ba] text-[#2c5243] shadow-xl ring-4 ring-[#A8E6CF]/30 transition-shadow hover:shadow-2xl hover:ring-[#A8E6CF]/50"
           >
             {/* Pulse effect */}
             <span className="absolute inset-0 -z-10 animate-ping rounded-full bg-[#A8E6CF]/40" />
@@ -196,7 +188,7 @@ export function FloatingChatbot() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="fixed bottom-6 right-6 z-50 flex h-[600px] max-h-[calc(100vh-48px)] w-[380px] max-w-[calc(100vw-48px)] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl"
+            className="fixed bottom-6 right-6 z-50 flex h-150 max-h-[calc(100vh-48px)] w-95 max-w-[calc(100vw-48px)] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl"
           >
             {/* Header */}
             <div className="flex shrink-0 items-center justify-between bg-gradient-to-r from-[#A8E6CF] to-[#C1E1C1] px-4 py-3">
@@ -290,7 +282,7 @@ export function FloatingChatbot() {
                     }
                   }}
                   placeholder="Hỏi AI về sản phẩm, size..."
-                  className="max-h-[120px] min-h-[36px] w-full resize-none bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground"
+                  className="max-h-30 min-h-9 w-full resize-none bg-transparent py-2 text-sm outline-none placeholder:text-muted-foreground"
                   rows={1}
                 />
                 <button

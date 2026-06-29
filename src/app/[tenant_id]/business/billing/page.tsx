@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { checkPermissionUseCase } from "@/domain/rules/CheckPermissionUseCase";
 import type { User } from "@/domain/entities/User";
 import type { Metadata } from "next";
+import { BillingManager } from "@/components/business/billing/BillingManager";
 
 export const metadata: Metadata = { title: "Thanh toán & Gói dịch vụ" };
 
@@ -35,7 +36,7 @@ export default async function BillingPage() {
           Quản lý gói cước và thông tin thanh toán của doanh nghiệp.
         </p>
       </div>
-      {/* TODO: BillingPlansCard, InvoiceTable, PaymentMethodCard */}
+      <BillingManager />
     </div>
   );
 }
