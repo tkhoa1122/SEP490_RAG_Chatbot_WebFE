@@ -41,9 +41,10 @@ export function ApiKeysManager() {
   const fetchKeys = async () => {
     try {
       setLoading(true);
-      const res = await apiKeyAPI.getAll();
-      if (res.data) {
-        setKeys(res.data);
+      const res = await apiKeyAPI.getAll() as any;
+      if (res) {
+        const items = res.data?.items || res.items || (Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []));
+        setKeys(items);
       }
     } catch (err: any) {
       toast.error("Lỗi khi tải danh sách API Keys", {

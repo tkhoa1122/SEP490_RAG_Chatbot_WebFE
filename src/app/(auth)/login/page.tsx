@@ -48,7 +48,7 @@ export default function AdminLoginPage() {
         localStorage.removeItem("remembered_email");
       }
 
-      const res = await mainAuthAPI.login({ email, password });
+      const res = await mainAuthAPI.login({ email, password, rememberMe });
 
       if (!res?.data?.accessToken) {
         setError(res?.message ?? "Đăng nhập thất bại. Kiểm tra lại thông tin.");

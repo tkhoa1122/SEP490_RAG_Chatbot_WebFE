@@ -6,6 +6,7 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { BusinessSidebar } from "@/components/dashboard/BusinessSidebar";
+import { BusinessHeader } from "@/components/dashboard/BusinessHeader";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -29,11 +30,8 @@ export default async function DashboardLayout({ children, params }: DashboardLay
 
       {/* Main area */}
       <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Header — TODO: DashboardHeader component */}
-        <header className="flex h-16 shrink-0 items-center justify-between border-b bg-card px-6">
-          <span className="text-sm font-medium text-muted-foreground">Dashboard</span>
-          {/* Avatar, notifications... */}
-        </header>
+        {/* Header */}
+        <BusinessHeader />
         <main className="flex-1 overflow-auto p-6">
           {children}
         </main>

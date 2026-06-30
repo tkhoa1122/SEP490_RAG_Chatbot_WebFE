@@ -25,7 +25,7 @@ export type { MainApiWrapper } from "@/infrastructure/dto/MainApiWrapper";
 // ── JWT Decoder ────────────────────────────────────────────────────────────────
 
 /** Giải mã JWT payload mà không cần thư viện ngoài */
-function decodeJwtPayload(token: string): Record<string, unknown> {
+export function decodeJwtPayload(token: string): Record<string, unknown> {
   try {
     const base64Url = token.split(".")[1];
     const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
@@ -87,7 +87,7 @@ export const mainAuthAPI = {
       const tenantId = (jwtPayload["businessSlug"] || jwtPayload["tenantId"] || null) as string | null;
 
       // Lưu token + cookies
-      saveMainToken(token, { role, tenantId });
+      saveMainToken(token, { role, tenantId, rememberMe: request.rememberMe });
 
       return {
         isSuccess: true,
@@ -159,7 +159,7 @@ export const mainAuthAPI = {
  */
 function saveMainToken(
   token: string,
-  meta: { role?: string; tenantId?: string | null }
+  meta: { role?: string; tenantId?: string | null; rememberMe?: boolean }
 ): void {
   if (typeof window === "undefined") return;
 
@@ -168,7 +168,7 @@ function saveMainToken(
 
   // Cookie — middleware & server component đọc được
   const expires = new Date();
-  expires.setDate(expires.getDate() + 7); // 7 ngày
+  expires.setDate(expires.getDate() + (meta.rememberMe ? 7 : 1)); // 7 ngày nếu rememberMe, ngược lại 1 ngày
   const cookieOptions = `path=/; expires=${expires.toUTCString()}; SameSite=Lax`;
 
   // Ghi đè auth_token cookie (middleware chỉ có 1 cookie key để đọc)

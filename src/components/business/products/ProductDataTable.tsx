@@ -34,10 +34,12 @@ export function ProductDataTable({ tenantId, onEdit, refreshTrigger }: ProductDa
           setTotalPages(Math.ceil((res.data.total || 0) / pageSize));
         }
       } else {
-        const res = await productAPI.getProducts(tenantId, page, pageSize);
+        const res = await productAPI.getProducts(tenantId, page, pageSize) as any;
         if (res) {
-          setProducts(res.data || []);
-          setTotalPages(res.totalPages || 1);
+          // Xử lý cả trường hợp response có bọc object { data: { items: [] } } hoặc trả thẳng { items: [] }
+          const responseData = res.data?.items ? res.data : (res.items ? res : res.data);
+          setProducts(responseData?.items || responseData?.data || (Array.isArray(responseData) ? responseData : []));
+          setTotalPages(responseData?.totalPages || res.totalPages || 1);
         }
       }
     } catch (error) {
@@ -114,53 +116,65 @@ export function ProductDataTable({ tenantId, onEdit, refreshTrigger }: ProductDa
                 </TableCell>
               </TableRow>
             ) : (
-              products.map((p) => (
-                <TableRow key={p.product_id} className="group hover:bg-muted/50">
-                  <TableCell className="font-mono text-xs text-muted-foreground">
-                    {p.product_id.split("-")[0]}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-3">
-                      {p.p_image_url ? (
-                        <img src={p.p_image_url} alt={p.p_name} className="h-10 w-10 rounded-md object-cover border" />
-                      ) : (
-                        <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center border">
-                          <PackageSearch className="h-5 w-5 text-muted-foreground/50" />
+              products.map((p: any) => {
+                const idStr = String(p.product_id || p.id || "N/A");
+                const shortId = idStr.includes("-") ? idStr.split("-")[0] : idStr;
+                const name = p.p_name || p.name || "Không tên";
+                const imageUrl = p.p_image_url || p.imageUrl || p.image_url;
+                const category = p.p_category || p.categoryName || "Chưa phân loại";
+                const price = p.p_price || p.price || 0;
+                const currency = p.p_currency || p.currency || "VND";
+                const stock = p.in_stock !== undefined ? p.in_stock : (p.stock || 0);
+                const isActive = p.is_active !== undefined ? p.is_active : (p.status === 'Active');
+
+                return (
+                  <TableRow key={idStr} className="group hover:bg-muted/50">
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      {shortId}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-3">
+                        {imageUrl ? (
+                          <img src={imageUrl} alt={name} className="h-10 w-10 rounded-md object-cover border" />
+                        ) : (
+                          <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center border">
+                            <PackageSearch className="h-5 w-5 text-muted-foreground/50" />
+                          </div>
+                        )}
+                        <div>
+                          <p className="line-clamp-1">{name}</p>
                         </div>
-                      )}
-                      <div>
-                        <p className="line-clamp-1">{p.p_name}</p>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{p.p_category || "Chưa phân loại"}</TableCell>
-                  <TableCell>
-                    {new Intl.NumberFormat("vi-VN", { style: "currency", currency: p.p_currency || "VND" }).format(p.p_price || 0)}
-                  </TableCell>
-                  <TableCell>{p.in_stock}</TableCell>
-                  <TableCell>
-                    {p.is_active ? (
-                      <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
-                        Đang bán
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-slate-500/10 text-slate-600 border-slate-500/20">
-                        Ngừng bán
-                      </Badge>
-                    )}
-                  </TableCell>
+                    </TableCell>
+                    <TableCell>{category}</TableCell>
+                    <TableCell>
+                      {new Intl.NumberFormat("vi-VN", { style: "currency", currency: currency }).format(price)}
+                    </TableCell>
+                    <TableCell>{stock}</TableCell>
+                    <TableCell>
+                      {isActive ? (
+                        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                          Đang bán
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-slate-500/10 text-slate-600 border-slate-500/20">
+                          Ngừng bán
+                        </Badge>
+                      )}
+                    </TableCell>
                   <TableCell className="text-right pr-4">
                     <div className="flex justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
                       <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => onEdit(p)}>
                         <Edit2 className="h-4 w-4" />
                       </Button>
-                      <Button variant="destructive" size="sm" className="h-8 w-8 p-0" onClick={() => handleDelete(p.product_id)}>
+                      <Button variant="destructive" size="sm" className="h-8 w-8 p-0" onClick={() => handleDelete(idStr)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))
+              );
+            })
             )}
           </TableBody>
         </Table>

@@ -33,6 +33,12 @@ const NAV_ITEMS: NavItem[] = [
     icon: LayoutDashboard,
   },
   {
+    label: "Nhân sự",
+    href: (t) => `/${t}/business/team`,
+    icon: Users,
+    allowedRoles: ["BUSINESS_OWNER"],
+  },
+  {
     label: "Sản phẩm",
     href: (t) => `/${t}/business/products`,
     icon: Box,
@@ -43,26 +49,15 @@ const NAV_ITEMS: NavItem[] = [
     icon: Store,
   },
   {
-    label: "Thống kê",
-    href: (t) => `/${t}/business/analytics`,
-    icon: BarChart,
-    allowedRoles: ["BUSINESS_OWNER"],
-  },
-  {
     label: "Thanh toán",
     href: (t) => `/${t}/business/billing`,
     icon: CreditCard,
     allowedRoles: ["BUSINESS_OWNER"],
   },
   {
-    label: "Cài đặt",
-    href: (t) => `/${t}/business/settings`,
-    icon: Settings,
-  },
-  {
-    label: "Nhân sự",
-    href: (t) => `/${t}/business/team`,
-    icon: Users,
+    label: "Thống kê",
+    href: (t) => `/${t}/business/analytics`,
+    icon: BarChart,
     allowedRoles: ["BUSINESS_OWNER"],
   },
   {
@@ -70,6 +65,11 @@ const NAV_ITEMS: NavItem[] = [
     href: (t) => `/${t}/business/api-keys`,
     icon: Key,
     allowedRoles: ["BUSINESS_OWNER"],
+  },
+  {
+    label: "Cài đặt",
+    href: (t) => `/${t}/business/settings`,
+    icon: Settings,
   },
 ];
 

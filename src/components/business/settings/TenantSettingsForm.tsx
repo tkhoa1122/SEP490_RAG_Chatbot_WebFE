@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { businessAPI, type UpdateBusinessCommand } from "@/infrastructure/api/businessAPI";
+import { mainAuthAPI } from "@/infrastructure/api/mainAuthAPI";
 import { cn } from "@/lib/utils";
 
 export function TenantSettingsForm() {
@@ -27,17 +28,24 @@ export function TenantSettingsForm() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await businessAPI.getProfile();
-        if (res.data) {
+        const [profileRes, meRes] = await Promise.all([
+          businessAPI.getProfile(),
+          mainAuthAPI.getMe()
+        ]);
+        
+        if (profileRes.data) {
           reset({
-            businessName: res.data.businessName || "",
-            hotLine: res.data.hotLine || "",
-            websiteUrl: res.data.websiteUrl || "",
-            addressLine: res.data.addressLine || "",
+            businessName: profileRes.data.businessName || "",
+            hotLine: profileRes.data.hotLine || "",
+            websiteUrl: profileRes.data.websiteUrl || "",
+            addressLine: profileRes.data.addressLine || "",
           });
+        }
+
+        if (meRes.data) {
           setOwnerInfo({
-            email: res.data.businessOwnerEmail || "",
-            name: res.data.businessOwnerName || "",
+            email: meRes.data.email || "",
+            name: meRes.data.fullName || "",
           });
         }
       } catch (err) {

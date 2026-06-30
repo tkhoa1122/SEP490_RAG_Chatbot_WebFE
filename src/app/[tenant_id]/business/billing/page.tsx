@@ -5,6 +5,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { checkPermissionUseCase } from "@/domain/rules/CheckPermissionUseCase";
+import { decodeJwtPayload } from "@/infrastructure/api/mainAuthAPI";
 import type { User } from "@/domain/entities/User";
 import type { Metadata } from "next";
 import { BillingManager } from "@/components/business/billing/BillingManager";
@@ -15,10 +16,21 @@ export default async function BillingPage() {
   // Guard Layer 3: kiểm tra quyền billing tại chính trang nhạy cảm
   const cookieStore = await cookies();
   const userRole = cookieStore.get("user_role")?.value;
-  const userId = cookieStore.get("user_id")?.value;
+  const authToken = cookieStore.get("auth_token")?.value;
 
-  // Tạo user object từ cookie để truyền vào UseCase
-  const mockUser = userRole && userId
+  let userId = "unknown";
+  if (authToken) {
+    const payload = decodeJwtPayload(authToken);
+    userId = (
+      payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] || 
+      payload["id"] || 
+      payload["sub"] || 
+      "unknown"
+    ) as string;
+  }
+
+  // Tạo user object chuẩn xác hơn
+  const mockUser = userRole 
     ? { id: userId, role: userRole, email: "", name: "", createdAt: "" } as User
     : null;
 
