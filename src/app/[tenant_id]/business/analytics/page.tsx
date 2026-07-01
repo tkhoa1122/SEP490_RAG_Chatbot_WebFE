@@ -3,15 +3,15 @@ import { AlertCircle, LineChart as LineChartIcon, TrendingUp, Users, Activity } 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-export const metadata: Metadata = { title: "Phân tích" };
+export const metadata: Metadata = { title: "Doanh thu" };
 
 export default function AnalyticsPage() {
   return (
     <div className="space-y-6 pb-12">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Phân tích kinh doanh</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Doanh thu & Chuyển đổi</h1>
         <p className="mt-1 text-muted-foreground">
-          Báo cáo doanh thu, hành vi khách hàng và hiệu suất hoạt động của chatbot.
+          Báo cáo doanh thu, hành vi mua sắm của khách hàng và hiệu quả bán hàng.
         </p>
       </div>
 
@@ -56,12 +56,12 @@ export default function AnalyticsPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Lượt tương tác</CardTitle>
+            <CardTitle className="text-sm font-medium">Sản phẩm bán ra</CardTitle>
             <LineChartIcon className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-amber-600">12,450</div>
-            <p className="text-xs text-muted-foreground mt-1">Tin nhắn xử lý trong tháng</p>
+            <div className="text-2xl font-bold text-amber-600">432</div>
+            <p className="text-xs text-muted-foreground mt-1">Đơn vị sản phẩm trong tháng</p>
           </CardContent>
         </Card>
       </div>
