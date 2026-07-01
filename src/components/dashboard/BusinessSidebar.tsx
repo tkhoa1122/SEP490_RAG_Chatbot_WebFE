@@ -67,13 +67,11 @@ const NAV_ITEMS: NavItem[] = [
     label: "Doanh thu",
     href: (t) => `/${t}/business/analytics`,
     icon: BarChart,
-    allowedRoles: ["BUSINESS_OWNER"],
   },
   {
     label: "Hiệu suất AI",
     href: (t) => `/${t}/business/performance`,
     icon: Activity,
-    allowedRoles: ["BUSINESS_OWNER"],
   },
   {
     label: "API Keys",
