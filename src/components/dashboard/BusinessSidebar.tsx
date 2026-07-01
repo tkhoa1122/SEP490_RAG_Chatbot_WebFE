@@ -17,6 +17,7 @@ import {
   MessageSquare,
   Activity,
   Bot,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
@@ -90,6 +91,7 @@ const NAV_ITEMS: NavItem[] = [
     label: "Cài đặt",
     href: (t) => `/${t}/business/settings`,
     icon: Settings,
+    allowedRoles: ["BUSINESS_OWNER"],
   },
 ];
 
@@ -130,14 +132,28 @@ export function BusinessSidebar({ tenantId }: { tenantId: string }) {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 overflow-y-auto p-2">
-        {NAV_ITEMS.filter(
-          (item) => !item.allowedRoles || item.allowedRoles.includes(userRole)
-        ).map((item) => {
+        {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const href = item.href(tenantId);
           // Match exact path for overview, prefix for others
           const isActive =
             pathname === href || (href !== `/${tenantId}/business` && pathname.startsWith(href));
+            
+          const isAllowed = !item.allowedRoles || item.allowedRoles.includes(userRole);
+
+          if (!isAllowed) {
+            return (
+              <div
+                key={href}
+                title="Tính năng chỉ dành cho Chủ doanh nghiệp"
+                className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium opacity-50 cursor-not-allowed text-muted-foreground"
+              >
+                <Icon className="h-4.5 w-4.5 shrink-0 text-muted-foreground" />
+                {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
+                {!collapsed && <Lock className="h-3.5 w-3.5 ml-auto text-muted-foreground" />}
+              </div>
+            );
+          }
 
           return (
             <Link
