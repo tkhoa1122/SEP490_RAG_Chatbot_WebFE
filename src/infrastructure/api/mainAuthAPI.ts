@@ -51,6 +51,7 @@ function mapJwtRoleToUserRole(jwtRole: string): string {
     SYSTEM_ADMIN: UserRole.SYSTEM_ADMIN,
     BUSINESS_OWNER: UserRole.BUSINESS_OWNER,
     CATALOG_MARKETING: UserRole.CATALOG_MARKETING,
+    CATALOG_TEAM: UserRole.CATALOG_MARKETING, // Map CATALOG_TEAM từ BE sang CATALOG_MARKETING của FE
     CUSTOMER: UserRole.CUSTOMER,
   };
   return roleMap[jwtRole] ?? jwtRole;
@@ -167,9 +168,12 @@ function saveMainToken(
   localStorage.setItem(MAIN_TOKEN_KEY, token);
 
   // Cookie — middleware & server component đọc được
-  const expires = new Date();
-  expires.setDate(expires.getDate() + (meta.rememberMe ? 7 : 1)); // 7 ngày nếu rememberMe, ngược lại 1 ngày
-  const cookieOptions = `path=/; expires=${expires.toUTCString()}; SameSite=Lax`;
+  let cookieOptions = "path=/; SameSite=Lax";
+  if (meta.rememberMe) {
+    const expires = new Date();
+    expires.setDate(expires.getDate() + 7); // 7 ngày
+    cookieOptions += `; expires=${expires.toUTCString()}`;
+  }
 
   // Ghi đè auth_token cookie (middleware chỉ có 1 cookie key để đọc)
   document.cookie = `auth_token=${token}; ${cookieOptions}`;

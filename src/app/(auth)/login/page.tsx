@@ -1,12 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Loader2, LogIn, Eye, EyeOff, ShieldCheck, Mail, LockKeyhole } from "lucide-react";
 import { mainAuthAPI, resolvePostLoginUrl } from "@/infrastructure/api/mainAuthAPI";
 
 export default function AdminLoginPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "";
   const reason = searchParams.get("reason");
@@ -20,19 +19,23 @@ export default function AdminLoginPage() {
 
   const reasonMessage: Record<string, string> = {
     SESSION_EXPIRED: "Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.",
+    NOT_AUTHENTICATED: "Vui lòng đăng nhập để tiếp tục.",
     UNKNOWN_ROLE: "Tài khoản không có quyền truy cập hệ thống.",
     NO_TENANT: "Tài khoản chưa được gán doanh nghiệp. Liên hệ Admin.",
   };
 
   // Load saved email nếu đã chọn "Ghi nhớ đăng nhập" lần trước
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedEmail = localStorage.getItem("remembered_email");
-      if (savedEmail) {
-        setEmail(savedEmail);
-        setRememberMe(true);
-      }
+    if (typeof window === "undefined") return;
+
+    const savedEmail = localStorage.getItem("remembered_email");
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setRememberMe(true);
     }
+
+    // Trình duyệt sẽ tự động xóa session cookies khi tắt trình duyệt
+    // Không cần dùng beforeunload vì nó sẽ chạy cả khi chuyển trang (redirect)
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,13 +44,18 @@ export default function AdminLoginPage() {
     setLoading(true);
 
     try {
-      // Ghi nhớ / xóa email
+      // ── Bước 1: Xóa session cũ trước khi đăng nhập mới ──────────────────────
+      // Tránh trường hợp cookie cũ (sai role/tenant) gây lỗi 403 sau khi redirect
+      mainAuthAPI.logout();
+
+      // ── Bước 2: Ghi nhớ / xóa email ─────────────────────────────────────────
       if (rememberMe) {
         localStorage.setItem("remembered_email", email);
       } else {
         localStorage.removeItem("remembered_email");
       }
 
+      // ── Bước 3: Gọi API đăng nhập ────────────────────────────────────────────
       const res = await mainAuthAPI.login({ email, password, rememberMe });
 
       if (!res?.data?.accessToken) {
@@ -56,11 +64,13 @@ export default function AdminLoginPage() {
       }
 
       const { role, tenantId } = res.data;
-
       const redirectTo = callbackUrl || resolvePostLoginUrl(role ?? "", tenantId);
-      router.replace(redirectTo);
-    } catch (err: unknown) {
 
+      // ── Bước 4: Force full-page reload để middleware đọc cookies mới ─────────
+      // Dùng window.location.href thay vì router.replace vì middleware Next.js
+      // chỉ đọc cookie ở server-side khi có full navigation (không phải SPA nav)
+      window.location.href = redirectTo;
+    } catch (err: unknown) {
       const axiosError = err as { response?: { data?: { message?: string }; status?: number } };
       if (axiosError?.response?.status === 401) {
         setError("Email hoặc mật khẩu không đúng.");

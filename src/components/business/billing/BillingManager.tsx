@@ -16,9 +16,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { paymentAPI, subscriptionAPI, type Payment, type Subscription, type PaymentStatus } from "@/infrastructure/api/subscriptionAPI";
+import { businessAPI, type Business } from "@/infrastructure/api/businessAPI";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -68,6 +71,12 @@ export function BillingManager() {
   const [plans, setPlans] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [activePayment, setActivePayment] = useState<Payment | null>(null);
+  const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+  const [isSubscribing, setIsSubscribing] = useState<string | null>(null);
+  const [businessProfile, setBusinessProfile] = useState<Business | null>(null);
+  
+  const params = useParams();
+  const tenantId = params?.tenant_id as string;
 
   // In real app, you get this from AuthContext or /auth/me
   // For demo, we just fetch all payments and assume the most recent Completed is the active one for this tenant
@@ -76,14 +85,16 @@ export function BillingManager() {
     const loadData = async () => {
       setLoading(true);
       try {
-        const [payRes, plansRes] = await Promise.all([
+        const [payRes, plansRes, profileRes] = await Promise.all([
           paymentAPI.getAll({ "Filter.PageSize": 50 }),
           subscriptionAPI.getAll({ "Filter.PageSize": 50 }),
+          businessAPI.getProfile().catch(() => null)
         ]);
         
         const payList = payRes.data?.items ?? [];
         setPayments(payList);
         setPlans(plansRes.data?.items ?? []);
+        if (profileRes?.data) setBusinessProfile(profileRes.data);
         
         // Find most recent completed payment to simulate "Active Plan"
         const completed = payList.find(p => p.status === "Completed");
@@ -105,6 +116,44 @@ export function BillingManager() {
   }, []);
 
   const activePlanData = activePayment ? (activePayment as any).subscriptionPlan as Subscription : null;
+
+  const handleSubscribe = async (plan: Subscription) => {
+    if (!businessProfile?.id) {
+      toast.error("Không tìm thấy thông tin doanh nghiệp (ID)");
+      return;
+    }
+    setIsSubscribing(plan.id);
+    try {
+      const res = await paymentAPI.createPaymentLink({
+        subscriptionPlanId: plan.id,
+        bussinessId: businessProfile.id,
+        returnUrlDomain: window.location.origin
+      });
+      
+      // Handle various response wrappers (data, paymentUrl, checkoutUrl)
+      const url = res?.data?.paymentUrl || res?.data?.checkoutUrl || (res as any)?.paymentUrl || (res as any)?.checkoutUrl || (typeof res.data === 'string' && res.data.startsWith('http') ? res.data : null);
+      
+      if (url) {
+        window.location.href = url;
+      } else {
+        toast.error("Lỗi tạo link thanh toán (Response rỗng)", { 
+          description: "Vui lòng xem log console. Response: " + JSON.stringify(res)
+        });
+        console.error("Payment API Response:", res);
+      }
+    } catch (err: any) {
+      console.error("Payment API Error:", err);
+      let errMsg = err.response?.data?.message || err.response?.data?.title || err.message;
+      if (err.response?.status === 402) errMsg = "Tài khoản cần nâng cấp hoặc thanh toán thất bại (402).";
+      if (err.response?.status === 400) errMsg = errMsg || "Dữ liệu không hợp lệ (400).";
+      
+      toast.error("Không thể khởi tạo thanh toán", {
+        description: errMsg,
+      });
+    } finally {
+      setIsSubscribing(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -162,7 +211,7 @@ export function BillingManager() {
                   </div>
 
                   <div className="space-y-3 pt-2">
-                    <Button className="w-full font-semibold">Nâng cấp gói cước</Button>
+                    <Button className="w-full font-semibold" onClick={() => setIsPricingModalOpen(true)}>Nâng cấp gói cước</Button>
                     <p className="text-center text-xs text-muted-foreground">
                       Chu kỳ thanh toán tiếp theo: <span className="font-medium text-foreground">Chưa có dữ liệu</span>
                     </p>
@@ -175,7 +224,7 @@ export function BillingManager() {
                     <p className="font-medium text-foreground">Chưa có gói cước nào</p>
                     <p className="text-sm text-muted-foreground">Vui lòng đăng ký gói cước để sử dụng dịch vụ.</p>
                   </div>
-                  <Button className="mt-2 w-full">Xem bảng giá</Button>
+                  <Button className="mt-2 w-full" onClick={() => setIsPricingModalOpen(true)}>Xem bảng giá</Button>
                 </div>
               )}
             </CardContent>
@@ -241,6 +290,66 @@ export function BillingManager() {
           </Card>
         </div>
       </div>
+
+      {/* Pricing Modal */}
+      <Dialog open={isPricingModalOpen} onOpenChange={setIsPricingModalOpen}>
+        <DialogContent className="w-[95vw] sm:max-w-[800px] md:max-w-[900px] max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-center">Bảng giá gói cước</DialogTitle>
+            <DialogDescription className="text-center">
+              Chọn gói cước phù hợp với nhu cầu của doanh nghiệp bạn.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-4">
+            {plans.map((plan) => (
+              <Card key={plan.id} className="flex flex-col border-primary/10 shadow-sm hover:shadow-md transition-shadow relative">
+                {activePlanData?.id === plan.id && (
+                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 px-3">Gói hiện tại</Badge>
+                )}
+                <CardHeader>
+                  <CardTitle className="text-xl">{plan.name}</CardTitle>
+                  {plan.description && <CardDescription className="line-clamp-2">{plan.description}</CardDescription>}
+                  <div className="mt-4 flex items-baseline text-2xl font-extrabold text-primary break-all">
+                    ₫{plan.price.toLocaleString("vi-VN")}
+                    <span className="ml-1 text-sm font-medium text-muted-foreground shrink-0">/{plan.duration} ngày</span>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col gap-6">
+                  <div className="space-y-3 text-sm flex-1">
+                    <div className="flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-violet-500" />
+                      <span><b>{plan.tokenLimit.toLocaleString("vi-VN")}</b> Token AI</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4 text-blue-500" />
+                      <span><b>{plan.messageLimit.toLocaleString("vi-VN")}</b> Tin nhắn</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Package className="h-4 w-4 text-emerald-500" />
+                      <span><b>{plan.maxProductAllowed.toLocaleString("vi-VN")}</b> Sản phẩm</span>
+                    </div>
+                  </div>
+                  <Button 
+                    className="w-full font-semibold" 
+                    variant={activePlanData?.id === plan.id ? "outline" : "default"}
+                    disabled={activePlanData?.id === plan.id || isSubscribing === plan.id}
+                    onClick={() => handleSubscribe(plan)}
+                  >
+                    {isSubscribing === plan.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {activePlanData?.id === plan.id ? "Đang sử dụng" : plan.price > 0 ? "Thanh toán ngay" : "Bắt đầu miễn phí"}
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+            {plans.length === 0 && (
+              <div className="col-span-full py-10 text-center text-muted-foreground">
+                <AlertCircle className="mx-auto h-8 w-8 mb-2 opacity-50" />
+                <p>Hiện chưa có gói cước nào được cung cấp.</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

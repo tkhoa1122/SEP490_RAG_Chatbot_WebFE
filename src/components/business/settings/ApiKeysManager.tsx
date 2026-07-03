@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { apiKeyAPI, type ApiKeyDto } from "@/infrastructure/api/apiKeyAPI";
+import { isKeyActive, getMaskedKey, getFullKey } from "@/infrastructure/dto/ApiKeyDTO";
 import { toast } from "sonner";
 
 export function ApiKeysManager() {
@@ -71,7 +72,7 @@ export function ApiKeysManager() {
       const res = await apiKeyAPI.create({ name: newKeyName.trim() });
       if (res.data) {
         toast.success("Tạo API Key thành công");
-        setNewlyCreatedKey(res.data.keyValue);
+        setNewlyCreatedKey(getFullKey(res.data));
         setNewKeyName("");
         fetchKeys();
       }
@@ -90,15 +91,15 @@ export function ApiKeysManager() {
     setNewKeyName("");
   };
 
-  const handleViewDetails = async (id: string, name: string) => {
-    setViewKeyId(id);
+  const handleViewDetails = async (keyId: string, name: string) => {
+    setViewKeyId(keyId);
     setViewKeyName(name);
     setFullKeyValue(null);
     setViewing(true);
     try {
-      const res = await apiKeyAPI.getById(id);
+      const res = await apiKeyAPI.getById(keyId);
       if (res.data) {
-        setFullKeyValue(res.data.keyValue);
+        setFullKeyValue(getFullKey(res.data));
       }
     } catch (err: any) {
       toast.error("Không thể lấy chi tiết API Key", {
@@ -177,14 +178,14 @@ export function ApiKeysManager() {
                   <TableCell className="font-medium pl-6">{k.name}</TableCell>
                   <TableCell>
                     <code className="rounded bg-muted px-2 py-1 text-xs text-muted-foreground border border-border/50">
-                      {k.keyMasked || `${k.keyPrefix || "sk_live_"}••••••••`}
+                      {getMaskedKey(k)}
                     </code>
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
                     {new Date(k.createdAt).toLocaleDateString("vi-VN")}
                   </TableCell>
                   <TableCell>
-                    {k.isActive ? (
+                    {isKeyActive(k) ? (
                       <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
                         Đang hoạt động
                       </Badge>
@@ -196,13 +197,13 @@ export function ApiKeysManager() {
                   </TableCell>
                   <TableCell className="text-right pr-6">
                     <div className="flex justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
-                      {k.isActive && (
+                      {isKeyActive(k) && (
                         <>
                           <Button
                             variant="outline"
                             size="sm"
                             className="h-8 px-2 text-primary border-primary/20 hover:bg-primary/10"
-                            onClick={() => handleViewDetails(k.id, k.name)}
+                            onClick={() => handleViewDetails(k.keyId!, k.name)}
                           >
                             <Eye className="w-4 h-4 mr-1" /> Xem
                           </Button>

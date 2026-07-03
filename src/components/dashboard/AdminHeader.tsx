@@ -10,15 +10,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useRouter } from "next/navigation";
 import { mainAuthAPI } from "@/infrastructure/api/mainAuthAPI";
 
 export function AdminHeader() {
-  const router = useRouter();
 
   const handleLogout = () => {
     mainAuthAPI.logout();
-    router.push("/login");
+    // Dùng window.location.href thay vì router.push để force full-page reload
+    // giúp Next.js middleware đọc lại cookies mới (đã xóa) chính xác
+    window.location.href = "/login";
   };
 
   return (

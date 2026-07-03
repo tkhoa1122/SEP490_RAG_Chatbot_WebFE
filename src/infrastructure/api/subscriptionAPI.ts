@@ -85,7 +85,6 @@ export const paymentAPI = {
     return data;
   },
 
-  /** POST /api/v1/payments — Tạo link thanh toán */
   createPaymentLink: async (body: {
     subscriptionPlanId: string;
     bussinessId: string;
@@ -94,6 +93,14 @@ export const paymentAPI = {
     const { data } = await mainAxiosClient.post<MainApiWrapper<{ paymentUrl: string }>>(
       "/payments",
       body
+    );
+    return data;
+  },
+
+  /** POST /api/v1/payments/test-success?orderCode=... — Fake Webhook (Localhost only) */
+  simulatePaymentSuccess: async (orderCode: number): Promise<MainApiWrapper<any>> => {
+    const { data } = await mainAxiosClient.post<MainApiWrapper<any>>(
+      `/payments/test-success?orderCode=${orderCode}`
     );
     return data;
   },

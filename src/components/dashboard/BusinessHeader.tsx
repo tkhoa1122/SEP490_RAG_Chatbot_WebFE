@@ -17,7 +17,6 @@ import { getRoleFromCookie } from "@/infrastructure/api/mainAuthAPI";
 import { businessAPI } from "@/infrastructure/api/businessAPI";
 
 export function BusinessHeader() {
-  const router = useRouter();
   const [role, setRole] = useState("Business User");
   const [businessName, setBusinessName] = useState("Cửa hàng");
 
@@ -42,7 +41,9 @@ export function BusinessHeader() {
 
   const handleLogout = () => {
     mainAuthAPI.logout();
-    router.push("/login");
+    // Dùng window.location.href thay vì router.push để force full-page reload
+    // giúp Next.js middleware đọc lại cookies mới (đã xóa) chính xác
+    window.location.href = "/login";
   };
 
   return (
