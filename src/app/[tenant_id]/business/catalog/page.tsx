@@ -86,7 +86,7 @@ export default function CatalogPage() {
               <p className="text-sm font-medium mb-1">
                 {uploading ? "Đang tải lên tài liệu..." : "Bấm vào đây để chọn file"}
               </p>
-              <p className="text-xs text-muted-foreground mb-4">Hỗ trợ PDF, DOCX, TXT (tối đa 10MB)</p>
+              <p className="text-xs text-muted-foreground mb-4">Hỗ trợ PDF, DOCX, TXT, EXCEL, CSV (tối đa 10MB)</p>
               
               <Button disabled={uploading} onClick={(e) => { e.stopPropagation(); handleUploadClick(); }}>
                 {uploading ? "Đang xử lý..." : "Chọn tài liệu"}
@@ -97,7 +97,7 @@ export default function CatalogPage() {
                 ref={fileInputRef} 
                 className="hidden" 
                 multiple 
-                accept=".pdf,.doc,.docx,.txt" 
+                accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.csv" 
                 onChange={handleFileChange}
               />
             </div>
