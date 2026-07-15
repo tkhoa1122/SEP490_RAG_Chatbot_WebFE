@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, Fragment } from "react";
 import {
   Search,
   Loader2,
@@ -235,7 +235,7 @@ export function QuotaManager() {
                 </TableRow>
               ) : (
                 payments.map((payment) => (
-                  <>
+                  <Fragment key={payment.id}>
                     <TableRow key={payment.id}
                       className="group cursor-pointer hover:bg-muted/30"
                       onClick={() => handleExpand(payment)}>
@@ -308,7 +308,7 @@ export function QuotaManager() {
                         </TableCell>
                       </TableRow>
                     )}
-                  </>
+                  </Fragment>
                 ))
               )}
             </TableBody>

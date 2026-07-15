@@ -3,3 +3,17 @@
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
+
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs for this repo live as GitHub issues. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Uses the default five canonical triage roles. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout with a root CONTEXT.md and docs/adr/. See `docs/agents/domain.md`.
