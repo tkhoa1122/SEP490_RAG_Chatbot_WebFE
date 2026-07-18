@@ -12,8 +12,9 @@ const conversationAxios = axios.create({
 
 export interface ChatMessage {
   id: string;
-  conversationId: string;
-  sender: "User" | "AI";
+  conversationId?: string;
+  senderType: "Customer" | "ChatBot" | string;
+  contentType?: string;
   content: string;
   createdAt: string;
 }

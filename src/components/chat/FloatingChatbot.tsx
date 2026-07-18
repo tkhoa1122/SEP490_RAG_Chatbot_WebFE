@@ -26,6 +26,45 @@ function MarkdownText({ text }: { text: string }) {
   );
 }
 
+// --- Streaming Markdown Component ---
+function StreamingMarkdown({ text, isStreaming = false, onComplete }: { text: string, isStreaming?: boolean, onComplete?: () => void }) {
+  const [displayedText, setDisplayedText] = useState(isStreaming ? "" : text);
+  
+  useEffect(() => {
+    if (!isStreaming) {
+      setDisplayedText(text);
+      return;
+    }
+    
+    let i = 0;
+    setDisplayedText("");
+    const timer = setInterval(() => {
+      // Nhảy 2 ký tự mỗi lần để gõ nhanh hơn
+      i += 2;
+      setDisplayedText(text.slice(0, i));
+      if (i >= text.length) {
+        clearInterval(timer);
+        if (onComplete) onComplete();
+      }
+    }, 15); // tốc độ đánh chữ (ms)
+    
+    return () => clearInterval(timer);
+  }, [text, isStreaming, onComplete]);
+
+  return <MarkdownText text={displayedText} />;
+}
+
+// Helper kiểm tra người gửi
+const isUserMessage = (senderType?: string) => senderType?.toLowerCase() === "user" || senderType?.toLowerCase() === "customer";
+
+// Helper xử lý Date an toàn
+const safeFormatDate = (dateStr?: string) => {
+  if (!dateStr) return "Gần đây";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "Gần đây";
+  return d.toLocaleDateString("vi-VN");
+};
+
 // --- Main Chatbot Component ---
 export function FloatingChatbot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -33,7 +72,7 @@ export function FloatingChatbot() {
   // States
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<(ChatMessage & { isNewStreaming?: boolean })[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   
@@ -142,10 +181,10 @@ export function FloatingChatbot() {
     
     // Optimistic UI
     const tempId = Date.now().toString();
-    const tempMsg: ChatMessage = {
+    const tempMsg: ChatMessage & { isNewStreaming?: boolean } = {
       id: tempId,
       conversationId: activeConversationId || "new",
-      sender: "User",
+      senderType: "Customer",
       content: text,
       createdAt: new Date().toISOString(),
     };
@@ -156,6 +195,7 @@ export function FloatingChatbot() {
 
     try {
       let res;
+      let targetConvId = activeConversationId;
       if (activeConversationId) {
         res = await conversationAPI.sendMessage(activeConversationId, {
           message: text,
@@ -166,22 +206,43 @@ export function FloatingChatbot() {
           message: text,
           externalCustomerId: EXTERNAL_CUSTOMER_ID,
         });
-        setActiveConversationId(res.data?.id || null);
+        targetConvId = res.data?.id || null;
+        setActiveConversationId(targetConvId);
         fetchConversations(); // Reload list
       }
 
       // Thay thế temp message và hiển thị AI message
-      if (res.data?.messages) {
+      if (res.data?.messages && res.data.messages.length > 0) {
         const sorted = [...res.data.messages].sort(
           (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         );
         setMessages((prev) => {
-          // Xóa tin tạm, gán danh sách tin nhắn mới
+          // Xóa tin tạm
           const filtered = prev.filter(m => m.id !== tempId);
           // Tìm tin nhắn mới nhất chưa có trong list
-          const newMsgs = sorted.filter(s => !filtered.find(f => f.id === s.id));
+          const newMsgs = sorted.filter(s => !filtered.find(f => f.id === s.id)).map(m => ({
+             ...m,
+             // Đánh dấu để stream nếu là tin AI
+             isNewStreaming: !isUserMessage(m.senderType) 
+          }));
           return [...filtered, ...newMsgs];
         });
+      } else if (targetConvId) {
+        // Fallback: nếu Backend không trả kèm messages trong response, ta tự fetch lại
+        const reloadRes = await conversationAPI.getMessages(targetConvId, EXTERNAL_CUSTOMER_ID, undefined, 20);
+        if (reloadRes.data?.items) {
+           const sorted = [...reloadRes.data.items].sort(
+             (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+           );
+           setMessages((prev) => {
+             const filtered = prev.filter(m => m.id !== tempId);
+             const newMsgs = sorted.filter(s => !filtered.find(f => f.id === s.id)).map(m => ({
+               ...m,
+               isNewStreaming: !isUserMessage(m.senderType) 
+             }));
+             return [...filtered, ...newMsgs];
+           });
+        }
       }
     } catch (error) {
       console.error("Failed to send message", error);
@@ -260,7 +321,7 @@ export function FloatingChatbot() {
                       <span className="font-medium text-sm line-clamp-1 w-full">{conv.title || "Hội thoại mới"}</span>
                       <span className="text-[10px] text-muted-foreground flex items-center gap-1 mt-1">
                         <Clock className="h-3 w-3" />
-                        {new Date(conv.updatedAt).toLocaleDateString("vi-VN")}
+                        {safeFormatDate(conv.updatedAt)}
                       </span>
                     </button>
                   ))
@@ -316,35 +377,43 @@ export function FloatingChatbot() {
                 )}
 
                 <div className="flex flex-col gap-4">
-                  {messages.map((msg) => (
+                  {messages.map((msg) => {
+                    const isUser = isUserMessage(msg.senderType);
+                    return (
                     <div
                       key={msg.id}
                       className={cn(
                         "flex max-w-[85%] flex-col gap-1",
-                        msg.sender === "User" ? "self-end" : "self-start"
+                        isUser ? "self-end" : "self-start"
                       )}
                     >
-                      <div className={cn("flex items-end gap-2", msg.sender === "User" ? "flex-row-reverse" : "flex-row")}>
+                      <div className={cn("flex items-end gap-2", isUser ? "flex-row-reverse" : "flex-row")}>
                         {/* Avatar */}
                         <div className={cn(
                           "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white shadow-sm",
-                          msg.sender === "User" ? "bg-slate-300" : "bg-[#A8E6CF]"
+                          isUser ? "bg-slate-300" : "bg-[#A8E6CF]"
                         )}>
-                          {msg.sender === "User" ? <User className="h-4 w-4 text-slate-600" /> : <Bot className="h-4 w-4 text-[#2c5243]" />}
+                          {isUser ? <User className="h-4 w-4 text-slate-600" /> : <Bot className="h-4 w-4 text-[#2c5243]" />}
                         </div>
 
                         {/* Bubble */}
                         <div className={cn(
                           "rounded-2xl px-4 py-2.5 text-sm",
-                          msg.sender === "User"
+                          isUser
                             ? "rounded-br-sm bg-slate-900 text-white"
                             : "rounded-bl-sm border border-border bg-white text-slate-700 shadow-sm"
                         )}>
-                          <MarkdownText text={msg.content} />
+                          <StreamingMarkdown 
+                            text={msg.content} 
+                            isStreaming={msg.isNewStreaming} 
+                            onComplete={() => {
+                              setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, isNewStreaming: false } : m))
+                            }} 
+                          />
                         </div>
                       </div>
                     </div>
-                  ))}
+                  )})}
 
                   {/* Typing Indicator */}
                   {isTyping && (
