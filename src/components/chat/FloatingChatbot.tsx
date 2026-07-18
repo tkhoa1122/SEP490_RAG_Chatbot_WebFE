@@ -144,9 +144,13 @@ export function FloatingChatbot() {
 
   useEffect(() => {
     if (activeConversationId) {
-      setLastCursor(undefined);
-      setMessages([]);
-      loadMessages(activeConversationId);
+      if (activeConversationId !== "new") {
+        setLastCursor(undefined);
+        setMessages([]);
+        loadMessages(activeConversationId);
+        // Nếu chuyển sang hội thoại khác, xóa fake "new" đi
+        setConversations(prev => prev.filter(c => c.id !== "new"));
+      }
       // Trên mobile, chọn conversation xong thì đóng sidebar
       if (window.innerWidth < 768) {
         setIsSidebarOpen(false);
@@ -196,7 +200,7 @@ export function FloatingChatbot() {
     try {
       let res;
       let targetConvId = activeConversationId;
-      if (activeConversationId) {
+      if (activeConversationId && activeConversationId !== "new") {
         res = await conversationAPI.sendMessage(activeConversationId, {
           message: text,
           externalCustomerId: EXTERNAL_CUSTOMER_ID,
@@ -254,10 +258,24 @@ export function FloatingChatbot() {
   };
 
   const createNewChat = () => {
-    setActiveConversationId(null);
+    setActiveConversationId("new");
     setMessages([]);
     setLastCursor(undefined);
     setHasMoreMessages(false);
+    
+    setConversations(prev => {
+      if (prev.find(c => c.id === "new")) return prev;
+      return [{
+        id: "new",
+        title: "Hội thoại mới",
+        externalCustomerId: EXTERNAL_CUSTOMER_ID,
+        tenantId: "",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        messages: []
+      }, ...prev];
+    });
+
     if (window.innerWidth < 768) setIsSidebarOpen(false);
   };
 
