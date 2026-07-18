@@ -57,13 +57,7 @@ function StreamingMarkdown({ text, isStreaming = false, onComplete }: { text: st
 // Helper kiểm tra người gửi
 const isUserMessage = (senderType?: string) => senderType?.toLowerCase() === "user" || senderType?.toLowerCase() === "customer";
 
-// Helper xử lý Date an toàn
-const safeFormatDate = (dateStr?: string) => {
-  if (!dateStr) return "Gần đây";
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return "Gần đây";
-  return d.toLocaleDateString("vi-VN");
-};
+// Đã loại bỏ helper xử lý date do không cần dùng nữa
 
 // --- Main Chatbot Component ---
 export function FloatingChatbot() {
@@ -212,7 +206,15 @@ export function FloatingChatbot() {
         });
         targetConvId = res.data?.id || null;
         setActiveConversationId(targetConvId);
-        fetchConversations(); // Reload list
+      }
+
+      // Cập nhật danh sách hội thoại để đẩy hội thoại mới/vừa chat lên đầu
+      if (res.data) {
+        const updatedConv = res.data;
+        setConversations(prev => {
+          const filtered = prev.filter(c => c.id !== "new" && c.id !== updatedConv.id);
+          return [updatedConv, ...filtered];
+        });
       }
 
       // Thay thế temp message và hiển thị AI message
@@ -336,11 +338,7 @@ export function FloatingChatbot() {
                         activeConversationId === conv.id ? "bg-[#A8E6CF]/20 text-[#2c5243]" : "hover:bg-muted/50"
                       )}
                     >
-                      <span className="font-medium text-sm line-clamp-1 w-full">{conv.title || "Hội thoại mới"}</span>
-                      <span className="text-[10px] text-muted-foreground flex items-center gap-1 mt-1">
-                        <Clock className="h-3 w-3" />
-                        {safeFormatDate(conv.updatedAt)}
-                      </span>
+                      <span className="font-medium text-sm line-clamp-2 w-full leading-tight">{conv.title || "Hội thoại mới"}</span>
                     </button>
                   ))
                 )}
