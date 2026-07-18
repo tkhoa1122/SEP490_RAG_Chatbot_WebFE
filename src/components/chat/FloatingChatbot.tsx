@@ -208,12 +208,17 @@ export function FloatingChatbot() {
         setActiveConversationId(targetConvId);
       }
 
-      // Cập nhật danh sách hội thoại để đẩy hội thoại mới/vừa chat lên đầu
-      if (res.data) {
+      // Chỉ thay thế hội thoại "new" bằng hội thoại thật từ server, giữ nguyên thứ tự
+      if (res.data && activeConversationId === "new") {
         const updatedConv = res.data;
         setConversations(prev => {
-          const filtered = prev.filter(c => c.id !== "new" && c.id !== updatedConv.id);
-          return [updatedConv, ...filtered];
+          const index = prev.findIndex(c => c.id === "new");
+          if (index !== -1) {
+            const newList = [...prev];
+            newList[index] = updatedConv;
+            return newList;
+          }
+          return prev;
         });
       }
 
