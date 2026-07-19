@@ -12,6 +12,7 @@ import {
   ChevronRight,
   FileText,
   BarChart3,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,11 @@ const NAV_ITEMS: NavItem[] = [
     label: "Doanh nghiệp",
     href: "/admin/tenants",
     icon: Building2,
+  },
+  {
+    label: "Người dùng",
+    href: "/admin/users",
+    icon: Users,
   },
   {
     label: "Gói cước",

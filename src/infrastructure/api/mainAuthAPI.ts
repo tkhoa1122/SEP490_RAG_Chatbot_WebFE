@@ -1,19 +1,18 @@
 /**
  * 🔐 Main Auth API — Dành cho Admin / Business Owner / Catalog Team
  *
- * Gọi Main DB tại NEXT_PUBLIC_MAIN_API_URL (localhost:5000)
+ * Gọi Main DB (đi qua Next.js Proxy ở /api/v1)
  * KHÔNG dùng cho Buyer (dùng authAPI.ts cho Buyer).
  *
  * Endpoints:
  *   POST /api/v1/auth/login  — { email, password }
  *   GET  /api/v1/auth/me     — Lấy profile người dùng hiện tại
  *
- * Token được lưu tách biệt hoàn toàn:
- *   localStorage key: "main_auth_token"   (≠ Buyer: "auth_token")
- *   Cookie:           "auth_token" + "user_role" + "tenant_id"  ← middleware đọc
+ * Token được lưu hoàn toàn ở Cookie để Middleware và SSR đọc được:
+ *   Cookie: "auth_token" + "user_role" + "tenant_id"
  */
 
-import mainAxiosClient, { MAIN_TOKEN_KEY, MAIN_USER_KEY } from "./mainAxiosClient";
+import mainAxiosClient, { MAIN_USER_KEY } from "./mainAxiosClient";
 import { UserRole } from "@/domain/entities/User";
 import type { LoginRequest, LoginResponse, MeResponse } from "@/infrastructure/dto/AuthDTO";
 import type { MainApiWrapper } from "@/infrastructure/dto/MainApiWrapper";
@@ -117,18 +116,19 @@ export const mainAuthAPI = {
   },
 
   /**
-   * Đăng xuất — xóa token khỏi localStorage và cookies
+   * Đăng xuất — xóa token khỏi cookies
    */
   logout: (): void => {
     clearMainToken();
   },
 
   /**
-   * Lấy token từ localStorage
+   * Lấy token từ cookie
    */
   getToken: (): string | null => {
     if (typeof window === "undefined") return null;
-    return localStorage.getItem(MAIN_TOKEN_KEY);
+    const match = document.cookie.match(new RegExp('(^| )auth_token=([^;]+)'));
+    return match ? match[2] : null;
   },
 
   /**
@@ -156,16 +156,13 @@ export const mainAuthAPI = {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /**
- * Lưu token vào localStorage + cookies (để middleware Next.js đọc được)
+ * Lưu token vào cookies (để middleware Next.js và Axios đọc được)
  */
 function saveMainToken(
   token: string,
   meta: { role?: string; tenantId?: string | null; rememberMe?: boolean }
 ): void {
   if (typeof window === "undefined") return;
-
-  // localStorage — client-side
-  localStorage.setItem(MAIN_TOKEN_KEY, token);
 
   // Cookie — middleware & server component đọc được
   let cookieOptions = "path=/; SameSite=Lax";
@@ -175,7 +172,7 @@ function saveMainToken(
     cookieOptions += `; expires=${expires.toUTCString()}`;
   }
 
-  // Ghi đè auth_token cookie (middleware chỉ có 1 cookie key để đọc)
+  // Ghi đè auth_token cookie
   document.cookie = `auth_token=${token}; ${cookieOptions}`;
 
   // Ghi role để middleware phân quyền route
@@ -190,12 +187,11 @@ function saveMainToken(
 }
 
 /**
- * Xóa sạch toàn bộ token (localStorage + cookies)
+ * Xóa sạch toàn bộ token ở cookies
  */
 function clearMainToken(): void {
   if (typeof window === "undefined") return;
 
-  localStorage.removeItem(MAIN_TOKEN_KEY);
   localStorage.removeItem(MAIN_USER_KEY);
 
   // Xóa tất cả các cookie liên quan

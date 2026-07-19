@@ -25,10 +25,10 @@ export const productAPI = {
 
   /**
    * Tạo sản phẩm mới
-   * POST /api/v1/product
+   * POST /api/v1/partner/products
    */
   createProduct: async (product: ProductCreateCommand): Promise<ApiResponse<ProductDTO>> => {
-    const { data } = await externalAxiosClient.post<ApiResponse<ProductDTO>>("/product", product);
+    const { data } = await externalAxiosClient.post<ApiResponse<ProductDTO>>("/partner/products", product);
     return data;
   },
 

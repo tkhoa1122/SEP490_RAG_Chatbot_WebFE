@@ -10,12 +10,11 @@
 import axios, { type AxiosInstance } from "axios";
 
 // ── Constants ──────────────────────────────────────────────────────────────────
-// Token key khác hoàn toàn so với Buyer (auth_token) để tránh xung đột
-export const MAIN_TOKEN_KEY = "main_auth_token";
+// Chúng ta lưu thông tin User (không nhạy cảm) vào localStorage để hiện UI nhanh
 export const MAIN_USER_KEY = "main_auth_user";
 
-export const MAIN_API_BASE_URL =
-  process.env.NEXT_PUBLIC_MAIN_API_URL ?? "http://localhost:5000/api/v1";
+// Sử dụng Proxy của Next.js (cấu hình trong next.config.ts) thay vì gọi thẳng
+export const MAIN_API_BASE_URL = "/api/v1";
 
 // ── Axios Instance ─────────────────────────────────────────────────────────────
 const mainAxiosClient: AxiosInstance = axios.create({
@@ -26,11 +25,14 @@ const mainAxiosClient: AxiosInstance = axios.create({
   timeout: 15000, // 15 giây timeout
 });
 
-// ── Request Interceptor: gắn JWT token của Admin/BO/CT ────────────────────────
+// ── Request Interceptor: gắn JWT token từ Cookie ─────────────────────────────
 mainAxiosClient.interceptors.request.use(
   (config) => {
     if (typeof window !== "undefined") {
-      const token = localStorage.getItem(MAIN_TOKEN_KEY);
+      // Đọc auth_token từ Cookie (dùng chung cho cả SSR Middleware và Client)
+      const match = document.cookie.match(new RegExp('(^| )auth_token=([^;]+)'));
+      const token = match ? match[2] : null;
+      
       if (token) {
         config.headers["Authorization"] = `Bearer ${token}`;
       }
@@ -48,14 +50,16 @@ mainAxiosClient.interceptors.response.use(
   (error) => {
     // Xử lý lỗi Unauthorized (401)
     if (error.response?.status === 401 && typeof window !== "undefined") {
-      // Token hết hạn hoặc không hợp lệ → xóa token và redirect về trang login quản trị
-      localStorage.removeItem(MAIN_TOKEN_KEY);
+      // Xóa thông tin user ở LocalStorage
       localStorage.removeItem(MAIN_USER_KEY);
-      // Xóa cả cookie để middleware nhận biết
-      document.cookie = `${MAIN_TOKEN_KEY}=; path=/; max-age=0`;
+      
+      // Xóa token ở Cookie
       document.cookie = "auth_token=; path=/; max-age=0";
       document.cookie = "user_role=; path=/; max-age=0";
-      // Middleware sẽ tự redirect về /login khi cookie trống
+      document.cookie = "tenant_id=; path=/; max-age=0";
+      
+      // Chuyển hướng cứng về trang login
+      window.location.href = "/login";
     }
 
     // Xử lý lỗi Validation (400) từ .NET Core

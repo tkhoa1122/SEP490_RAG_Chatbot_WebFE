@@ -13,15 +13,11 @@
  */
 
 import axios, { type AxiosInstance } from "axios";
-import { MAIN_TOKEN_KEY } from "./mainAxiosClient";
+import { MAIN_USER_KEY } from "./mainAxiosClient";
 
 // ── Base URL ───────────────────────────────────────────────────────────────────
-// External API nằm trên cùng server với Internal API (localhost:5000)
-// Khi deploy, có thể tách ra server khác bằng cách đổi biến môi trường
-export const EXTERNAL_API_BASE_URL =
-  process.env.NEXT_PUBLIC_EXTERNAL_API_URL ??
-  process.env.NEXT_PUBLIC_MAIN_API_URL ??
-  "http://localhost:5000/api/v1";
+// Sử dụng Proxy của Next.js để gọi API mà không bị lỗi CORS
+export const EXTERNAL_API_BASE_URL = "/api/v1";
 
 // ── Axios Instance ─────────────────────────────────────────────────────────────
 const externalAxiosClient: AxiosInstance = axios.create({
@@ -32,13 +28,15 @@ const externalAxiosClient: AxiosInstance = axios.create({
   timeout: 20000, // 20 giây — upload sản phẩm có thể lâu hơn
 });
 
-// ── Request Interceptor: gắn JWT token của Admin/BO/CT ────────────────────────
+// ── Request Interceptor: gắn JWT token từ Cookie ─────────────────────────────
 // BO truy cập từ Dashboard → dùng JWT token như Internal API
 // Web bên ngoài → truyền API Key qua header X-Api-Key (xử lý ở tầng gọi API)
 externalAxiosClient.interceptors.request.use(
   (config) => {
     if (typeof window !== "undefined") {
-      const token = localStorage.getItem(MAIN_TOKEN_KEY);
+      const match = document.cookie.match(new RegExp('(^| )auth_token=([^;]+)'));
+      const token = match ? match[2] : null;
+      
       if (token) {
         config.headers["Authorization"] = `Bearer ${token}`;
       }
@@ -53,10 +51,12 @@ externalAxiosClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 && typeof window !== "undefined") {
-      // Token hết hạn → redirect về login
-      localStorage.removeItem(MAIN_TOKEN_KEY);
+      // Token hết hạn → xóa cookie và redirect về login
+      localStorage.removeItem(MAIN_USER_KEY);
       document.cookie = "auth_token=; path=/; max-age=0";
       document.cookie = "user_role=; path=/; max-age=0";
+      document.cookie = "tenant_id=; path=/; max-age=0";
+      window.location.href = "/login";
     }
     return Promise.reject(error);
   }
