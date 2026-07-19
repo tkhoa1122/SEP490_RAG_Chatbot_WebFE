@@ -23,15 +23,16 @@ export function Footer({ tenantId }: { tenantId: string }) {
             <div className="space-y-3">
               <div className="flex items-center gap-3 text-sm text-gray-600">
                 <MapPin className="h-4 w-4 text-gray-400" />
-                <span>Số 1, Đại Cồ Việt, Hai Bà Trưng, Hà Nội</span>
+                <span>Lô D1, Khu Công Nghệ Cao, P. Tăng Nhơn Phú, TP. Hồ Chí Minh</span>
               </div>
               <div className="flex items-center gap-3 text-sm text-gray-600">
                 <Phone className="h-4 w-4 text-gray-400" />
-                <span>1900 27 27 37</span>
+                <span>0379 920 700</span>
               </div>
               <div className="flex items-center gap-3 text-sm text-gray-600">
                 <Mail className="h-4 w-4 text-gray-400" />
-                <span>support@{tenantId.replace(/-/g, "")}.vn</span>
+                {/* <span>support@{tenantId.replace(/-/g, "")}.vn</span> */}
+                <span>tkhoa1122@gmail.com</span>
               </div>
             </div>
           </div>
