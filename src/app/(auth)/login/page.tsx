@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Loader2, LogIn, Eye, EyeOff, ShieldCheck, Mail, LockKeyhole } from "lucide-react";
 import { mainAuthAPI, resolvePostLoginUrl } from "@/infrastructure/api/mainAuthAPI";
 
-export default function AdminLoginPage() {
+function AdminLoginContent() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "";
   const reason = searchParams.get("reason");
@@ -199,5 +199,17 @@ export default function AdminLoginPage() {
         <a href="#" className="text-[#5a9c82] hover:underline hover:text-[#2c5243]">Liên hệ hỗ trợ</a>
       </div>
     </div>
+  );
+}
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen items-center justify-center bg-slate-50">
+        <Loader2 className="h-8 w-8 animate-spin text-[#2c5243]" />
+      </div>
+    }>
+      <AdminLoginContent />
+    </Suspense>
   );
 }
