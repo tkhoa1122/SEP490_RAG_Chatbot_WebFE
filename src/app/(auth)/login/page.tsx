@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Loader2, LogIn, Eye, EyeOff, ShieldCheck, Mail, LockKeyhole } from "lucide-react";
 import { mainAuthAPI, resolvePostLoginUrl } from "@/infrastructure/api/mainAuthAPI";
 
@@ -194,9 +195,15 @@ function AdminLoginContent() {
       </form>
 
       {/* Footer Text */}
-      <div className="mt-8 text-center text-[13px] font-medium text-slate-500">
-        Chỉ dành cho Admin, Business Owner và Catalog Team. <br />
-        <a href="#" className="text-[#5a9c82] hover:underline hover:text-[#2c5243]">Liên hệ hỗ trợ</a>
+      <div className="mt-8 flex flex-col items-center gap-2 text-[13px] font-medium text-slate-500">
+        <p>Chỉ dành cho Admin, Business Owner và Catalog Team.</p>
+        <div className="flex items-center gap-4">
+          <Link href="/register" className="text-[#2c5243] font-bold hover:underline">
+            Đăng ký cửa hàng
+          </Link>
+          <span className="text-slate-300">|</span>
+          <a href="#" className="text-[#5a9c82] hover:underline hover:text-[#2c5243]">Liên hệ hỗ trợ</a>
+        </div>
       </div>
     </div>
   );

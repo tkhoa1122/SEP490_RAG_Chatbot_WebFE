@@ -44,7 +44,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
           {/* Feature pills */}
           <div className="mt-8 flex flex-wrap gap-2">
-            {["Không cần code", "Setup nhanh chóng", "Hỗ trợ 24/7", "Tăng doanh thu 35%"].map((feat) => (
+            {["Quản lý tập trung", "Setup nhanh chóng", "Hỗ trợ 24/7", "Tăng doanh thu 35%"].map((feat) => (
               <span key={feat} className="rounded-full border border-[#1c362b]/10 bg-white/20 px-3 py-1.5 text-xs font-medium text-[#1c362b] backdrop-blur-sm">
                 {feat}
               </span>
