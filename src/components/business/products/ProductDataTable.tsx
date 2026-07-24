@@ -117,15 +117,15 @@ export function ProductDataTable({ tenantId, onEdit, refreshTrigger }: ProductDa
               </TableRow>
             ) : (
               products.map((p: any) => {
-                const idStr = String(p.product_id || p.id || "N/A");
+                const idStr = String(p.externalId || p.id || p.product_id || "N/A");
                 const shortId = idStr.includes("-") ? idStr.split("-")[0] : idStr;
-                const name = p.p_name || p.name || "Không tên";
-                const imageUrl = p.p_image_url || p.imageUrl || p.image_url;
-                const category = p.p_category || p.categoryName || "Chưa phân loại";
-                const price = p.p_price || p.price || 0;
-                const currency = p.p_currency || p.currency || "VND";
-                const stock = p.in_stock !== undefined ? p.in_stock : (p.stock || 0);
-                const isActive = p.is_active !== undefined ? p.is_active : (p.status === 'Active');
+                const name = p.name || p.p_name || "Không tên";
+                const imageUrl = (p.images && p.images.length > 0) ? p.images[0] : (p.imageUrl || p.image_url || p.p_image_url);
+                const category = p.category || p.categoryName || p.p_category || "Chưa phân loại";
+                const price = p.price ?? p.p_price ?? 0;
+                const currency = p.currency ?? p.p_currency ?? "VND";
+                const stock = p.stockQuantity ?? p.in_stock ?? p.stock ?? 0;
+                const isActive = p.status ? p.status === 'Active' : (p.is_active !== false);
 
                 return (
                   <TableRow key={idStr} className="group hover:bg-muted/50">
