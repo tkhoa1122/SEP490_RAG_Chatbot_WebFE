@@ -80,8 +80,8 @@ export function ProductFormModal({ tenantId, isOpen, onClose, onSuccess, product
         stockQuantity: formData.stockQuantity,
       };
 
-      if (isEdit && (product?.id || product?.product_id)) {
-        await productAPI.updateProduct(String(product?.id || product?.product_id), payload);
+      if (isEdit && (product?.externalId || product?.id || product?.product_id)) {
+        await productAPI.updateProduct(String(product?.externalId || product?.id || product?.product_id), payload);
         toast.success("Cập nhật sản phẩm thành công");
       } else {
         await productAPI.createProduct(payload);

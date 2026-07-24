@@ -5,6 +5,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from "@/components/ui/button";
 import { UploadCloud, FileSpreadsheet, CheckCircle2, Loader2, AlertCircle, X } from "lucide-react";
 import { toast } from "react-hot-toast";
+import Papa from "papaparse";
+import { productAPI } from "@/infrastructure/api/productAPI";
 
 interface ImportProductsModalProps {
   tenantId: string;
@@ -75,32 +77,83 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
   const handleImport = () => {
     if (!file) return;
     
-    // Simulate multi-step import process
-    setStatus("uploading");
+    setStatus("validating");
     setProgress(10);
     
-    setTimeout(() => {
-      setProgress(40);
-      setStatus("validating");
-      
-      setTimeout(() => {
-        setProgress(70);
-        setStatus("indexing");
-        
-        setTimeout(() => {
-          setProgress(100);
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        const data = results.data as Record<string, string>[];
+        if (data.length === 0) {
+          toast.error("File CSV trống hoặc không đúng định dạng.");
+          setStatus("error");
+          return;
+        }
+
+        setStatus("uploading");
+        setProgress(30);
+
+        try {
+          let successCount = 0;
+          let failCount = 0;
+          
+          for (let i = 0; i < data.length; i++) {
+            const row = data[i];
+            
+            // Map row to ProductCreateCommand
+            // Hỗ trợ cả tiếng Anh lẫn tiếng Việt
+            const payload = {
+              name: row.Name || row["Tên"] || row.name || null,
+              description: row.Description || row["Mô tả"] || row.description || null,
+              price: parseFloat(row.Price || row["Giá"] || row.price || "0"),
+              stockQuantity: parseInt(row.Stock || row["Tồn Kho"] || row.stock || row["Số lượng"] || "0", 10),
+              category: row.Category || row["Danh mục"] || row.category || null,
+            };
+
+            try {
+              await productAPI.createProduct(payload);
+              successCount++;
+            } catch (err) {
+              console.error("Error importing row", row, err);
+              failCount++;
+            }
+            
+            // Update progress
+            const currentProgress = 30 + Math.floor(((i + 1) / data.length) * 65);
+            setProgress(currentProgress);
+            
+            // Change status to indexing/processing around 70%
+            if (currentProgress > 70 && status !== "indexing") {
+              setStatus("indexing");
+            }
+          }
+
           setStatus("success");
-          toast.success("Nhập dữ liệu thành công!");
+          setProgress(100);
+          
+          if (failCount > 0) {
+            toast.success(`Import hoàn tất: ${successCount} thành công, ${failCount} thất bại.`);
+          } else {
+            toast.success(`Import hoàn tất ${successCount} sản phẩm thành công!`);
+          }
           
           setTimeout(() => {
             onSuccess();
             onClose();
             clearFile();
-          }, 1500);
+          }, 2000);
           
-        }, 1500); // Indexing time
-      }, 1500); // Validation time
-    }, 1000); // Uploading time
+        } catch (error) {
+          toast.error("Đã xảy ra lỗi trong quá trình import.");
+          setStatus("error");
+        }
+      },
+      error: (error) => {
+        toast.error(`Lỗi đọc file: ${error.message}`);
+        setStatus("error");
+      }
+    });
   };
 
   const handleClose = () => {
@@ -166,7 +219,7 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
                     <span className="flex items-center gap-2">
                       {status === "uploading" && <><Loader2 className="h-3 w-3 animate-spin text-blue-500" /> Đang tải lên...</>}
                       {status === "validating" && <><Loader2 className="h-3 w-3 animate-spin text-amber-500" /> Đang kiểm tra dữ liệu...</>}
-                      {status === "indexing" && <><Loader2 className="h-3 w-3 animate-spin text-purple-500" /> Đang Vector hóa (Indexing)...</>}
+                      {status === "indexing" && <><Loader2 className="h-3 w-3 animate-spin text-purple-500" /> Đang xử lý dữ liệu...</>}
                       {status === "success" && <><CheckCircle2 className="h-3 w-3 text-emerald-500" /> Hoàn tất</>}
                       {status === "error" && <><AlertCircle className="h-3 w-3 text-red-500" /> Có lỗi xảy ra</>}
                     </span>

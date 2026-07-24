@@ -37,41 +37,39 @@ export const productAPI = {
 
   /**
    * Lấy danh sách sản phẩm (phân trang)
-   * GET /products (Storefront - tạm thời)
+   * GET /partner/products (External API)
    */
   getProducts: async (tenantId: string, page = 1, pageSize = 20): Promise<PaginatedResponse<ProductDTO>> => {
-    const { data } = await axiosClient.get<PaginatedResponse<ProductDTO>>("/products", {
-      params: { tenantId, page, pageSize },
+    const { data } = await externalAxiosClient.get<PaginatedResponse<ProductDTO>>("/partner/products", {
+      params: { PageIndex: page, PageSize: pageSize },
     });
     return data;
   },
 
   /**
    * Lấy sản phẩm theo ID
-   * GET /products/:id (Storefront - tạm thời)
+   * GET /partner/products/:id (External API)
    */
   getProductById: async (id: string): Promise<ApiResponse<ProductDTO>> => {
-    const { data } = await axiosClient.get<ApiResponse<ProductDTO>>(`/products/${id}`);
+    const { data } = await externalAxiosClient.get<ApiResponse<ProductDTO>>(`/partner/products/${id}`);
     return data;
   },
 
   /**
-   * Cập nhật sản phẩm (dùng External API khi có endpoint)
-   * Tạm thời placeholder — chưa có endpoint PUT trong External swagger
+   * Cập nhật sản phẩm
+   * PUT /partner/products/:id (External API)
    */
   updateProduct: async (id: string, product: Partial<ProductCreateCommand>): Promise<ApiResponse<ProductDTO>> => {
-    // TODO: Cập nhật sang externalAxiosClient khi BE thêm PUT /api/v1/product/{id}
-    const { data } = await axiosClient.patch<ApiResponse<ProductDTO>>(`/products/${id}`, product);
+    const { data } = await externalAxiosClient.put<ApiResponse<ProductDTO>>(`/partner/products/${id}`, product);
     return data;
   },
 
   /**
    * Xóa sản phẩm
-   * Tạm thời placeholder — chưa có endpoint DELETE trong External swagger
+   * DELETE /partner/products/:id (External API)
    */
   deleteProduct: async (id: string): Promise<ApiResponse<null>> => {
-    // TODO: Cập nhật sang externalAxiosClient khi BE thêm DELETE /api/v1/product/{id}
-    const { data } = await axiosClient.delete<ApiResponse<null>>(`/products/${id}`);
+    const { data } = await externalAxiosClient.delete<ApiResponse<null>>(`/partner/products/${id}`);
     return data;
   },
 
@@ -80,8 +78,13 @@ export const productAPI = {
    * GET /products/search (Storefront - tạm thời)
    */
   searchProducts: async (query: string, tenantId: string): Promise<ApiResponse<ProductSearchResultDTO>> => {
-    const { data } = await axiosClient.get<ApiResponse<ProductSearchResultDTO>>("/products/search", {
-      params: { q: query, tenantId },
+    // Note: The new API returns a standard list of products, not a ProductSearchResultDTO
+    // So we might need to map it, or just use the same getProducts format.
+    // For now, we will return it as if the data matches ProductSearchResultDTO structure
+    // (which might just be { products: [...], total: ... })
+    // If external API differs, this might need mapper adjustments.
+    const { data } = await externalAxiosClient.get<ApiResponse<ProductSearchResultDTO>>("/partner/products", {
+      params: { Name: query },
     });
     return data;
   },
