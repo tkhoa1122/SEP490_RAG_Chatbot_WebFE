@@ -1,22 +1,22 @@
 import type { Product, ProductSearchResult } from "@/domain/entities/Product";
-import type { ProductDTO, ProductSearchResultDTO } from "@/infrastructure/dto/ProductDTO";
+import type { ProductDTO, ProductSearchResultDTO, ProductCreateCommand } from "@/infrastructure/dto/ProductDTO";
 
 export class ProductMapper {
   static toEntity(dto: ProductDTO): Product {
     return {
-      id: dto.product_id,
-      tenantId: dto.tenant_id,
-      name: dto.p_name,
-      description: dto.p_description,
-      price: dto.p_price,
-      currency: dto.p_currency,
+      id: dto.product_id ?? "",
+      tenantId: dto.tenant_id ?? "",
+      name: dto.p_name ?? "",
+      description: dto.p_description ?? "",
+      price: dto.p_price ?? 0,
+      currency: dto.p_currency ?? "VND",
       imageUrl: dto.p_image_url,
-      category: dto.p_category,
-      tags: dto.p_tags,
-      stock: dto.in_stock,
-      isActive: dto.is_active,
-      createdAt: dto.created_at,
-      updatedAt: dto.updated_at,
+      category: dto.p_category ?? "",
+      tags: dto.p_tags ?? [],
+      stock: dto.in_stock ?? 0,
+      isActive: dto.is_active ?? true,
+      createdAt: dto.created_at ?? "",
+      updatedAt: dto.updated_at ?? "",
     };
   }
 
@@ -49,5 +49,18 @@ export class ProductMapper {
     if (entity.createdAt !== undefined) dto.created_at = entity.createdAt;
     if (entity.updatedAt !== undefined) dto.updated_at = entity.updatedAt;
     return dto;
+  }
+
+  static toCreateCommand(entity: Partial<Product>): ProductCreateCommand {
+    return {
+      name: entity.name ?? null,
+      description: entity.description ?? null,
+      price: entity.price ?? 0,
+      currency: entity.currency ?? null,
+      stockQuantity: entity.stock ?? 0,
+      category: entity.category ?? null,
+      images: entity.imageUrl ? [entity.imageUrl] : null,
+      metadata: entity.tags && entity.tags.length > 0 ? { tags: entity.tags.join(",") } : null,
+    };
   }
 }

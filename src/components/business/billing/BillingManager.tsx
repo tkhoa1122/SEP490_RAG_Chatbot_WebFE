@@ -131,7 +131,7 @@ export function BillingManager() {
       });
       
       // Handle various response wrappers (data, paymentUrl, checkoutUrl)
-      const url = res?.data?.paymentUrl || res?.data?.checkoutUrl || (res as any)?.paymentUrl || (res as any)?.checkoutUrl || (typeof res.data === 'string' && res.data.startsWith('http') ? res.data : null);
+      const url = res?.data?.paymentUrl || (res?.data as any)?.checkoutUrl || (res as any)?.paymentUrl || (res as any)?.checkoutUrl || (typeof res.data === 'string' && (res.data as string).startsWith('http') ? res.data : null);
       
       if (url) {
         window.location.href = url;

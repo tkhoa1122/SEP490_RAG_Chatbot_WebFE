@@ -25,9 +25,9 @@ class ProductRepositoryImpl implements ProductRepository {
   }
 
   async createProduct(product: Omit<Product, "id" | "createdAt" | "updatedAt">): Promise<ApiResponse<Product>> {
-    // Entity -> DTO
-    const dto = ProductMapper.toDTO(product);
-    const res = await productAPI.createProduct(dto);
+    // Entity -> Command
+    const cmd = ProductMapper.toCreateCommand(product);
+    const res = await productAPI.createProduct(cmd);
     return {
       ...res,
       data: res.data ? ProductMapper.toEntity(res.data) : null,
@@ -35,9 +35,9 @@ class ProductRepositoryImpl implements ProductRepository {
   }
 
   async updateProduct(id: string, product: Partial<Product>): Promise<ApiResponse<Product>> {
-    // Entity -> DTO
-    const dto = ProductMapper.toDTO(product);
-    const res = await productAPI.updateProduct(id, dto);
+    // Entity -> Command
+    const cmd = ProductMapper.toCreateCommand(product);
+    const res = await productAPI.updateProduct(id, cmd);
     return {
       ...res,
       data: res.data ? ProductMapper.toEntity(res.data) : null,
