@@ -40,6 +40,11 @@ externalAxiosClient.interceptors.request.use(
       if (token) {
         config.headers["Authorization"] = `Bearer ${token}`;
       }
+      
+      const apiKey = localStorage.getItem("bo_api_key");
+      if (apiKey) {
+        config.headers["x-api-key"] = apiKey;
+      }
     }
     return config;
   },
