@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { UploadCloud, FileSpreadsheet, CheckCircle2, Loader2, AlertCircle, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import Papa from "papaparse";
-import * as XLSX from "xlsx";
+import { read, utils } from "xlsx";
 import { productAPI } from "@/infrastructure/api/productAPI";
 
 interface ImportProductsModalProps {
@@ -22,6 +22,7 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<UploadStatus>("idle");
   const [progress, setProgress] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,6 +40,7 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
       setFile(selectedFile);
       setStatus("idle");
       setProgress(0);
+      setErrorMessage(null);
     }
   };
 
@@ -63,6 +65,7 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
       setFile(droppedFile);
       setStatus("idle");
       setProgress(0);
+      setErrorMessage(null);
     }
   };
 
@@ -70,6 +73,7 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
     setFile(null);
     setStatus("idle");
     setProgress(0);
+    setErrorMessage(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -83,7 +87,9 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
     
     const processData = async (data: Record<string, string>[]) => {
         if (data.length === 0) {
-          toast.error("File CSV trống hoặc không đúng định dạng.");
+          const msg = "File trống hoặc không đúng định dạng (không tìm thấy dòng dữ liệu nào).";
+          setErrorMessage(msg);
+          toast.error(msg);
           setStatus("error");
           return;
         }
@@ -141,7 +147,9 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
             clearFile();
           }, 2000);
           
-        } catch (error) {
+        } catch (error: any) {
+          const msg = error?.message || "Đã xảy ra lỗi không xác định khi gọi API.";
+          setErrorMessage(msg);
           toast.error("Đã xảy ra lỗi trong quá trình import.");
           setStatus("error");
         }
@@ -155,13 +163,20 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
         try {
           const buffer = e.target?.result as ArrayBuffer;
           const data = new Uint8Array(buffer);
-          const workbook = XLSX.read(data, { type: "array" });
+          const workbook = read(data, { type: "array" });
+          
+          if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+            throw new Error("File Excel không có sheet nào.");
+          }
+          
           const firstSheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[firstSheetName];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" }) as Record<string, string>[];
+          const jsonData = utils.sheet_to_json(worksheet, { defval: "" }) as Record<string, string>[];
           await processData(jsonData);
-        } catch (error) {
+        } catch (error: any) {
           console.error("Excel parsing error:", error);
+          const msg = error?.message || "Lỗi không xác định khi đọc file Excel.";
+          setErrorMessage(`Lỗi đọc file Excel: ${msg}`);
           toast.error("Lỗi đọc file Excel. Vui lòng kiểm tra lại định dạng file.");
           setStatus("error");
         }
@@ -219,6 +234,8 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
                   Tải file template mẫu (.csv)
                 </Button>
               </div>
+
+              </div>
             </div>
           ) : (
             <div className="border rounded-lg p-4 bg-muted/20">
@@ -262,6 +279,14 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
                       style={{ width: `${progress}%` }}
                     />
                   </div>
+                </div>
+              )}
+              
+              {/* Error Message Display in Progress View */}
+              {status === "error" && errorMessage && (
+                <div className="mt-4 p-3 rounded-xl bg-red-50 border border-red-100 flex items-start gap-2 text-sm text-red-600">
+                  <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                  <p>{errorMessage}</p>
                 </div>
               )}
             </div>
