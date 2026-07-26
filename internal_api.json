@@ -773,7 +773,7 @@
                 "tags": [
                     "Payment"
                 ],
-                "summary": "Get All Payments",
+                "summary": "Admin-Get All Payments",
                 "parameters": [
                     {
                         "name": "Filter.Search",
@@ -876,6 +876,63 @@
                         "schema": {
                             "type": "integer",
                             "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/payments/user": {
+            "get": {
+                "tags": [
+                    "Payment"
+                ],
+                "summary": "BO-Get All Payments",
+                "parameters": [
+                    {
+                        "name": "Filter.Search",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "Filter.PaymentEnums",
+                        "in": "query",
+                        "schema": {
+                            "$ref": "#/components/schemas/PaymentEnums"
+                        }
+                    },
+                    {
+                        "name": "Filter.CreateAtOrderBy",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "Filter.PageIndex",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "Filter.PageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
                         }
                     }
                 ],
@@ -1149,6 +1206,47 @@
                         }
                     }
                 ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/products/import": {
+            "post": {
+                "tags": [
+                    "Products"
+                ],
+                "summary": "BO import product data",
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "File"
+                                ],
+                                "type": "object",
+                                "properties": {
+                                    "File": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                }
+                            },
+                            "encoding": {
+                                "File": {
+                                    "style": "form"
+                                }
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "OK"
@@ -1602,6 +1700,13 @@
                         "in": "query",
                         "schema": {
                             "$ref": "#/components/schemas/UserStatus"
+                        }
+                    },
+                    {
+                        "name": "BusinessName",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
                         }
                     },
                     {
