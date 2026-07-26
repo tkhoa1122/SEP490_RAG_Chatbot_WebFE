@@ -105,13 +105,23 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
             const row = data[i];
             
             // Map row to ProductCreateCommand
-            // Hỗ trợ cả tiếng Anh lẫn tiếng Việt
+            // Hỗ trợ cả tiếng Anh lẫn tiếng Việt và cấu trúc file variants_export_*.xlsx
+            const imageUrlsStr = row.imageUrls || row.imageUrl || row["Hình ảnh"] || row.images || "";
+            const parsedImages = typeof imageUrlsStr === "string" 
+              ? imageUrlsStr.split("|").map(u => u.trim()).filter(Boolean)
+              : (Array.isArray(imageUrlsStr) ? imageUrlsStr : []);
+
             const payload = {
-              name: row.Name || row["Tên"] || row.name || row.productName || row.variantName || null,
+              externalId: String(row.sku || row.variantId || row.productId || row.externalId || row["Mã SP"] || `IMPORT-${Date.now()}-${i}`),
+              name: row.Name || row["Tên"] || row.name || row.productName || row.variantName || "Sản phẩm chưa đặt tên",
               description: row.Description || row["Mô tả"] || row.description || row.productDescription || null,
               price: parseFloat(String(row.Price || row["Giá"] || row.price || "0")),
+              currency: row.currency || row.Currency || "VND",
+              brand: row.brand || row.Brand || row.brandName || row["Thương hiệu"] || null,
               stockQuantity: parseInt(String(row.Stock || row["Tồn Kho"] || row.stock || row["Số lượng"] || row.stockQuantity || "0"), 10),
               category: row.Category || row["Danh mục"] || row.category || row.categoryName || null,
+              images: parsedImages.length > 0 ? parsedImages : null,
+              metadata: row.attributes ? { attributes: String(row.attributes) } : null
             };
 
             try {
