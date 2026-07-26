@@ -73,6 +73,7 @@ export function BillingManager() {
   const [activePayment, setActivePayment] = useState<Payment | null>(null);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState<string | null>(null);
+  const [isContinuing, setIsContinuing] = useState<string | null>(null);
   const [businessProfile, setBusinessProfile] = useState<Business | null>(null);
   
   const params = useParams();
@@ -130,11 +131,84 @@ export function BillingManager() {
 
   const activePlanData = activePayment ? (activePayment as any).subscriptionPlan as Subscription : null;
 
+  // Hàm tiếp tục thanh toán cho đơn đang xử lý (Pending)
+  const handleContinuePayment = async (payment: Payment) => {
+    if (!payment.orderCode) {
+      toast.error("Đơn này không có mã thanh toán (Order Code)");
+      return;
+    }
+    const targetId = payment.id || String(payment.orderCode);
+    setIsContinuing(targetId);
+    try {
+      // 1. Thử gọi API chi tiết đơn để lấy link thanh toán PayOS hiện tại
+      const detailRes = await paymentAPI.getByOrderCode(payment.orderCode);
+      const url = (detailRes.data as any)?.paymentUrl || (detailRes.data as any)?.checkoutUrl || (detailRes.data as any)?.url || (payment as any)?.paymentUrl || (payment as any)?.checkoutUrl || (typeof detailRes.data === 'string' && (detailRes.data as string).startsWith('http') ? detailRes.data : null);
+      
+      if (url) {
+        toast.info("Đang tiếp tục thanh toán...", { description: "Đang mở cổng thanh toán PayOS cho đơn hàng #" + payment.orderCode });
+        window.location.href = url;
+        return;
+      }
+
+      // 2. Nếu getByOrderCode không trả về link cũ, thử khởi tạo link thanh toán lại với ID gói cước tương ứng
+      let planId = (payment as any).subscriptionPlanId || (detailRes.data as any)?.subscriptionPlanId;
+      if (!planId && plans.length > 0) {
+        const matchPlan = plans.find(p => p.name === payment.subscriptionName || p.price === payment.amount);
+        if (matchPlan) planId = matchPlan.id;
+      }
+
+      if (planId) {
+        toast.info("Đang kết nối lại cổng thanh toán...");
+        const res = await paymentAPI.createPaymentLink({
+          subscriptionPlanId: planId,
+          returnUrlDomain: window.location.origin
+        });
+        const newUrl = res?.data?.paymentUrl || (res?.data as any)?.checkoutUrl || (res as any)?.paymentUrl || (res as any)?.checkoutUrl || (typeof res.data === 'string' && (res.data as string).startsWith('http') ? res.data : null);
+        if (newUrl) {
+          window.location.href = newUrl;
+          return;
+        }
+      }
+
+      toast.error("Không tìm thấy đường dẫn thanh toán cho đơn này", {
+        description: "Vui lòng liên hệ hỗ trợ hoặc đợi đơn thanh toán cũ hết hạn để tạo đơn mới."
+      });
+    } catch (err: any) {
+      console.error("Continue payment error:", err);
+      let errMsg = err.response?.data?.message || err.response?.data?.title || err.message;
+      if (typeof errMsg === "string" && (errMsg.toLowerCase().includes("already") || errMsg.toLowerCase().includes("pending") || errMsg.toLowerCase().includes("đang xử lý"))) {
+        toast.error("Đơn hàng này đang được chờ xác nhận từ cổng PayOS.", {
+          description: "Vui lòng hoàn tất thanh toán trên tab PayOS cũ trong trình duyệt của bạn."
+        });
+      } else {
+        toast.error("Không thể tiếp tục thanh toán", { description: errMsg });
+      }
+    } finally {
+      setIsContinuing(null);
+    }
+  };
+
   const handleSubscribe = async (plan: Subscription) => {
     if (!businessProfile?.id) {
       toast.error("Không tìm thấy thông tin doanh nghiệp (ID)");
       return;
     }
+
+    // Kiểm tra thông minh: Nếu doanh nghiệp đang có một đơn hàng Pending (Đang xử lý) cho gói cước này hoặc cùng mức giá
+    const pendingPayment = payments.find(p => p.status === "Pending" && (
+      (p.subscriptionName && p.subscriptionName === plan.name) || 
+      (p.amount === plan.price && plan.price > 0) ||
+      ((p as any).subscriptionPlanId === plan.id)
+    ));
+
+    if (pendingPayment && pendingPayment.orderCode) {
+      toast.info(`Bạn đang có đơn hàng #${pendingPayment.orderCode} (Đang xử lý) cho gói ${plan.name}.`, {
+        description: "Hệ thống đang mở lại cổng thanh toán cho đơn hàng này..."
+      });
+      await handleContinuePayment(pendingPayment);
+      return;
+    }
+
     setIsSubscribing(plan.id);
     try {
       const res = await paymentAPI.createPaymentLink({
@@ -166,6 +240,16 @@ export function BillingManager() {
         setActivePayment({ subscriptionPlan: plan, status: "Completed", amount: plan.price } as any);
         setIsPricingModalOpen(false);
         return;
+      }
+
+      // Xử lý thông minh lỗi Lỗi 2: Nếu BE báo có đơn đang chờ xử lý (pending payment order exists)
+      if (err.response?.status === 400 && typeof errMsg === "string" && (errMsg.toLowerCase().includes("pending") || errMsg.toLowerCase().includes("processing") || errMsg.toLowerCase().includes("đang xử lý") || errMsg.toLowerCase().includes("already"))) {
+        const anyPending = payments.find(p => p.status === "Pending");
+        if (anyPending && anyPending.orderCode) {
+          toast.info("Đang tự động chuyển đến đơn thanh toán đang xử lý...", { description: errMsg });
+          await handleContinuePayment(anyPending);
+          return;
+        }
       }
 
       if (err.response?.status === 400) errMsg = errMsg || "Dữ liệu không hợp lệ (400).";
@@ -289,23 +373,44 @@ export function BillingManager() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    payments.map((payment) => (
-                      <TableRow key={payment.id}>
-                        <TableCell className="pl-6 font-mono text-xs">{payment.orderCode ?? "—"}</TableCell>
-                        <TableCell className="font-medium">{payment.subscriptionName ?? "—"}</TableCell>
-                        <TableCell className="font-semibold">
-                          {payment.amount != null ? `₫${payment.amount.toLocaleString("vi-VN")}` : "—"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={cn("text-[11px]", payment.status ? PAYMENT_STATUS_MAP[payment.status].cls : "")}>
-                            {payment.status ? PAYMENT_STATUS_MAP[payment.status].label : "—"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="pr-6 text-right text-sm text-muted-foreground">
-                          {payment.createdAt ? new Date(payment.createdAt).toLocaleDateString("vi-VN") : "—"}
-                        </TableCell>
-                      </TableRow>
-                    ))
+                    payments.map((payment) => {
+                      const planNameDisplay = payment.subscriptionName || (payment as any).planName || (payment as any).description || plans.find(p => p.price === payment.amount)?.name || "—";
+                      const isTargeting = isContinuing === (payment.id || String(payment.orderCode));
+                      return (
+                        <TableRow key={payment.id || payment.orderCode} className={payment.status === "Pending" ? "bg-amber-500/5 hover:bg-amber-500/10 transition-colors" : ""}>
+                          <TableCell className="pl-6 font-mono text-xs font-semibold">{payment.orderCode ?? "—"}</TableCell>
+                          <TableCell className="font-medium">{planNameDisplay}</TableCell>
+                          <TableCell className="font-semibold text-primary">
+                            {payment.amount != null ? `₫${payment.amount.toLocaleString("vi-VN")}` : "—"}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className={cn("text-[11px]", payment.status ? PAYMENT_STATUS_MAP[payment.status].cls : "")}>
+                                {payment.status ? PAYMENT_STATUS_MAP[payment.status].label : "—"}
+                              </Badge>
+                              {payment.status === "Pending" && (
+                                <button
+                                  onClick={() => handleContinuePayment(payment)}
+                                  disabled={isTargeting}
+                                  className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 hover:text-amber-700 hover:underline transition-all bg-amber-500/10 px-2.5 py-1 rounded-md border border-amber-500/30 shadow-sm cursor-pointer disabled:opacity-50"
+                                  title="Nhấn để tiếp tục thanh toán đơn này trên cổng PayOS"
+                                >
+                                  {isTargeting ? (
+                                    <Loader2 className="h-3 w-3 animate-spin inline" />
+                                  ) : (
+                                    <ExternalLink className="h-3 w-3 inline" />
+                                  )}
+                                  Thanh toán tiếp &rarr;
+                                </button>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="pr-6 text-right text-sm text-muted-foreground">
+                            {payment.createdAt ? new Date(payment.createdAt).toLocaleDateString("vi-VN") : "—"}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>

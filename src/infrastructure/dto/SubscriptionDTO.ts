@@ -18,6 +18,8 @@ export interface Subscription {
   tokenLimit: number;
   messageLimit: number;
   maxProductAllowed: number;
+  maxDocumentAllowed?: number;
+  maxDocmentAllowed?: number;
   status?: StatusEnums;
   createdAt?: string;
 }
@@ -30,6 +32,8 @@ export interface SubscriptionAddCommand {
   tokenLimit: number;
   messageLimit: number;
   maxProductAllowed: number;
+  maxDocumentAllowed?: number;
+  maxDocmentAllowed?: number;
 }
 
 export interface SubscriptionUpdateCommand extends SubscriptionAddCommand {}
