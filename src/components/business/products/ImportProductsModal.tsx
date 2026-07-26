@@ -29,11 +29,11 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
     if (e.target.files && e.target.files.length > 0) {
       const selectedFile = e.target.files[0];
       // Basic validation for extension
-      const validExtensions = [".csv", ".xls", ".xlsx"];
+      const validExtensions = [".csv", ".xls", ".xlsx", ".json"];
       const isValid = validExtensions.some(ext => selectedFile.name.toLowerCase().endsWith(ext));
       
       if (!isValid) {
-        toast.error("Vui lòng tải lên file CSV hoặc Excel");
+        toast.error("Vui lòng tải lên file CSV, Excel hoặc JSON");
         return;
       }
       
@@ -54,11 +54,11 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
     e.stopPropagation();
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const droppedFile = e.dataTransfer.files[0];
-      const validExtensions = [".csv", ".xls", ".xlsx"];
+      const validExtensions = [".csv", ".xls", ".xlsx", ".json"];
       const isValid = validExtensions.some(ext => droppedFile.name.toLowerCase().endsWith(ext));
       
       if (!isValid) {
-        toast.error("Vui lòng tải lên file CSV hoặc Excel");
+        toast.error("Vui lòng tải lên file CSV, Excel hoặc JSON");
         return;
       }
       
@@ -107,11 +107,11 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
             // Map row to ProductCreateCommand
             // Hỗ trợ cả tiếng Anh lẫn tiếng Việt
             const payload = {
-              name: row.Name || row["Tên"] || row.name || null,
-              description: row.Description || row["Mô tả"] || row.description || null,
-              price: parseFloat(row.Price || row["Giá"] || row.price || "0"),
-              stockQuantity: parseInt(row.Stock || row["Tồn Kho"] || row.stock || row["Số lượng"] || "0", 10),
-              category: row.Category || row["Danh mục"] || row.category || null,
+              name: row.Name || row["Tên"] || row.name || row.productName || row.variantName || null,
+              description: row.Description || row["Mô tả"] || row.description || row.productDescription || null,
+              price: parseFloat(String(row.Price || row["Giá"] || row.price || "0")),
+              stockQuantity: parseInt(String(row.Stock || row["Tồn Kho"] || row.stock || row["Số lượng"] || row.stockQuantity || "0"), 10),
+              category: row.Category || row["Danh mục"] || row.category || row.categoryName || null,
             };
 
             try {
@@ -155,13 +155,30 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
         }
     };
 
-    const isExcel = file.name.toLowerCase().endsWith(".xls") || file.name.toLowerCase().endsWith(".xlsx");
+    const isExcel = file.name.toLowerCase().endsWith(".xls") || file.name.toLowerCase().endsWith(".xlsx") || file.name.toLowerCase().endsWith(".json");
     
     if (isExcel) {
       const reader = new FileReader();
       reader.onload = async (e) => {
         try {
           const buffer = e.target?.result as ArrayBuffer;
+          
+          // Kiểm tra tự động nếu nội dung thực tế là JSON (kể cả khi đuôi file là .xlsx)
+          const textDecoder = new TextDecoder("utf-8");
+          const text = textDecoder.decode(buffer).trim();
+          if (text.startsWith("{") || text.startsWith("[")) {
+            try {
+              const parsedJson = JSON.parse(text);
+              const items = Array.isArray(parsedJson) ? parsedJson : (Array.isArray(parsedJson.data) ? parsedJson.data : (Array.isArray(parsedJson.items) ? parsedJson.items : []));
+              if (items.length > 0) {
+                await processData(items);
+                return;
+              }
+            } catch (jsonErr) {
+              // Nếu không phải JSON hợp lệ thì parse tiếp theo chuẩn Excel nhị phân
+            }
+          }
+
           const data = new Uint8Array(buffer);
           const workbook = read(data, { type: "array" });
           
@@ -227,7 +244,7 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
             >
               <UploadCloud className="h-10 w-10 text-muted-foreground mb-4" />
               <p className="text-sm font-medium mb-1">Nhấn để tải lên hoặc kéo thả file vào đây</p>
-              <p className="text-xs text-muted-foreground">Hỗ trợ: .csv, .xls, .xlsx (Tối đa 5MB)</p>
+              <p className="text-xs text-muted-foreground">Hỗ trợ: .csv, .xls, .xlsx, .json (Tối đa 5MB)</p>
               
               <div className="mt-4 pt-4 border-t w-full">
                 <Button variant="link" size="sm" className="h-auto p-0" onClick={(e) => { e.stopPropagation(); toast("Tính năng tải template đang phát triển"); }}>
@@ -294,7 +311,7 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
             type="file" 
             ref={fileInputRef} 
             className="hidden" 
-            accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" 
+            accept=".csv, .json, application/json, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" 
             onChange={handleFileChange}
           />
         </div>
