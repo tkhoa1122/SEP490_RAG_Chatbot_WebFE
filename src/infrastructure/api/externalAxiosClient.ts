@@ -55,13 +55,10 @@ externalAxiosClient.interceptors.request.use(
 externalAxiosClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && typeof window !== "undefined") {
-      // Token hết hạn → xóa cookie và redirect về login
-      localStorage.removeItem(MAIN_USER_KEY);
-      document.cookie = "auth_token=; path=/; max-age=0";
-      document.cookie = "user_role=; path=/; max-age=0";
-      document.cookie = "tenant_id=; path=/; max-age=0";
-      window.location.href = "/login";
+    // Note: Đối với External API, lỗi 401 (VD: sai/thiếu API Key hoặc token) không được tự động
+    // xóa session đăng nhập nội bộ (cookie/localStorage) và kick user ra khỏi Dashboard.
+    if (error.response?.status === 401) {
+      console.error("External API 401 Unauthorized:", error.config?.url);
     }
     return Promise.reject(error);
   }

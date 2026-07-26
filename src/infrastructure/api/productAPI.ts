@@ -15,32 +15,26 @@
  * Tạm thời giữ lại axiosClient (Storefront) cho các thao tác đọc.
  */
 
-import externalAxiosClient from "@/infrastructure/api/externalAxiosClient";
-import { axiosClient } from "@/infrastructure/api/axiosClient";
+import mainAxiosClient from "@/infrastructure/api/mainAxiosClient";
 import type { ProductCreateCommand, ProductDTO, ProductSearchResultDTO } from "@/infrastructure/dto/ProductDTO";
 import type { ApiResponse, PaginatedResponse } from "@/domain/dto/api/ApiResponse";
 
 export const productAPI = {
-  // ── External API (localhost:5000) — Ghi dữ liệu ─────────────────────────────
-
   /**
    * Tạo sản phẩm mới
-   * POST /api/v1/partner/products
+   * POST /api/v1/products (Internal API)
    */
   createProduct: async (product: ProductCreateCommand): Promise<ApiResponse<ProductDTO>> => {
-    const { data } = await externalAxiosClient.post<ApiResponse<ProductDTO>>("/partner/products", product);
+    const { data } = await mainAxiosClient.post<ApiResponse<ProductDTO>>("/products", product);
     return data;
   },
 
-  // ── Storefront API (Render) — Đọc dữ liệu (tạm thời) ─────────────────────────
-  // TODO: Cập nhật khi External API có thêm GET/PUT/DELETE cho sản phẩm
-
   /**
    * Lấy danh sách sản phẩm (phân trang)
-   * GET /partner/products (External API)
+   * GET /api/v1/products (Internal API)
    */
   getProducts: async (tenantId: string, page = 1, pageSize = 20): Promise<PaginatedResponse<ProductDTO>> => {
-    const { data } = await externalAxiosClient.get<PaginatedResponse<ProductDTO>>("/partner/products", {
+    const { data } = await mainAxiosClient.get<PaginatedResponse<ProductDTO>>("/products", {
       params: { PageIndex: page, PageSize: pageSize },
     });
     return data;
@@ -48,42 +42,37 @@ export const productAPI = {
 
   /**
    * Lấy sản phẩm theo ID
-   * GET /partner/products/:id (External API)
+   * GET /api/v1/products/:id (Internal API)
    */
   getProductById: async (id: string): Promise<ApiResponse<ProductDTO>> => {
-    const { data } = await externalAxiosClient.get<ApiResponse<ProductDTO>>(`/partner/products/${id}`);
+    const { data } = await mainAxiosClient.get<ApiResponse<ProductDTO>>(`/products/${id}`);
     return data;
   },
 
   /**
    * Cập nhật sản phẩm
-   * PUT /partner/products/:id (External API)
+   * PUT /api/v1/products/:id (Internal API)
    */
   updateProduct: async (id: string, product: Partial<ProductCreateCommand>): Promise<ApiResponse<ProductDTO>> => {
-    const { data } = await externalAxiosClient.put<ApiResponse<ProductDTO>>(`/partner/products/${id}`, product);
+    const { data } = await mainAxiosClient.put<ApiResponse<ProductDTO>>(`/products/${id}`, product);
     return data;
   },
 
   /**
    * Xóa sản phẩm
-   * DELETE /partner/products/:id (External API)
+   * DELETE /api/v1/products/:id (Internal API)
    */
   deleteProduct: async (id: string): Promise<ApiResponse<null>> => {
-    const { data } = await externalAxiosClient.delete<ApiResponse<null>>(`/partner/products/${id}`);
+    const { data } = await mainAxiosClient.delete<ApiResponse<null>>(`/products/${id}`);
     return data;
   },
 
   /**
    * Tìm kiếm sản phẩm
-   * GET /products/search (Storefront - tạm thời)
+   * GET /api/v1/products (Internal API)
    */
   searchProducts: async (query: string, tenantId: string): Promise<ApiResponse<ProductSearchResultDTO>> => {
-    // Note: The new API returns a standard list of products, not a ProductSearchResultDTO
-    // So we might need to map it, or just use the same getProducts format.
-    // For now, we will return it as if the data matches ProductSearchResultDTO structure
-    // (which might just be { products: [...], total: ... })
-    // If external API differs, this might need mapper adjustments.
-    const { data } = await externalAxiosClient.get<ApiResponse<ProductSearchResultDTO>>("/partner/products", {
+    const { data } = await mainAxiosClient.get<ApiResponse<ProductSearchResultDTO>>("/products", {
       params: { Name: query },
     });
     return data;

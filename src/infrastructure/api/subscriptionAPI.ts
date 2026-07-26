@@ -87,8 +87,8 @@ export const paymentAPI = {
 
   createPaymentLink: async (body: {
     subscriptionPlanId: string;
-    bussinessId: string;
     returnUrlDomain: string;
+    bussinessId?: string;
   }): Promise<MainApiWrapper<{ paymentUrl: string }>> => {
     const { data } = await mainAxiosClient.post<MainApiWrapper<{ paymentUrl: string }>>(
       "/payments",

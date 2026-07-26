@@ -126,8 +126,7 @@ export function BillingManager() {
     try {
       const res = await paymentAPI.createPaymentLink({
         subscriptionPlanId: plan.id,
-        bussinessId: businessProfile.id,
-        returnUrlDomain: window.location.origin
+        returnUrlDomain: window.location.href
       });
       
       // Handle various response wrappers (data, paymentUrl, checkoutUrl)
