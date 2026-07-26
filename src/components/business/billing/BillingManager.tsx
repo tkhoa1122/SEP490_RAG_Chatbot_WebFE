@@ -86,7 +86,7 @@ export function BillingManager() {
       setLoading(true);
       try {
         const [payRes, plansRes, profileRes] = await Promise.all([
-          paymentAPI.getAll({ "Filter.PageSize": 50 }),
+          paymentAPI.getUserPayments({ "Filter.PageSize": 50 }),
           subscriptionAPI.getAll({ "Filter.PageSize": 50 }),
           businessAPI.getProfile().catch(() => null)
         ]);
