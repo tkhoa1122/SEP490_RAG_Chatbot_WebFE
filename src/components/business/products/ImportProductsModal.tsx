@@ -234,8 +234,6 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
                   Tải file template mẫu (.csv)
                 </Button>
               </div>
-
-              </div>
             </div>
           ) : (
             <div className="border rounded-lg p-4 bg-muted/20">
