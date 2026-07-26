@@ -85,7 +85,6 @@ export const productAPI = {
   importProducts: async (file: File): Promise<ApiResponse<any>> => {
     const formData = new FormData();
     formData.append("File", file);
-    formData.append("file", file);
     const { data } = await mainAxiosClient.post<ApiResponse<any>>("/products/import", formData, {
       headers: {
         "Content-Type": "multipart/form-data",

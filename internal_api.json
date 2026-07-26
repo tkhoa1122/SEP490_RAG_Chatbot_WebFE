@@ -976,6 +976,34 @@
                 ]
             }
         },
+        "/api/v1/payments/cancel/{orderCode}": {
+            "delete": {
+                "tags": [
+                    "Payment"
+                ],
+                "parameters": [
+                    {
+                        "name": "orderCode",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
         "/api/v1/products": {
             "post": {
                 "tags": [

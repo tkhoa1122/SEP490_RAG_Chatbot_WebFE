@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   AlertCircle,
   ExternalLink,
+  XCircle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -34,32 +35,31 @@ const PAYMENT_STATUS_MAP: Record<PaymentStatus, { label: string; cls: string }> 
 
 function QuotaBar({ label, used, total, icon: Icon, color }: {
   label: string;
-  used: number;
-  total: number;
-  icon: React.ElementType;
+  used?: number;
+  total?: number;
+  icon: any;
   color: string;
 }) {
-  const pct = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
+  const isUnlimited = total == null || total === -1 || total === 0;
+  const pct = isUnlimited || !used || !total ? 0 : Math.min(Math.round((used / total) * 100), 100);
+
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       <div className="flex items-center justify-between text-sm">
-        <div className="flex items-center gap-1.5 font-medium text-foreground">
+        <div className="flex items-center gap-2 font-medium text-foreground">
           <Icon className={cn("h-4 w-4", color)} />
-          {label}
+          <span>{label}</span>
         </div>
-        <span className={cn("font-semibold", pct >= 90 ? "text-red-600" : pct >= 70 ? "text-amber-600" : "text-foreground")}>
-          {pct}%
+        <span className="font-mono text-xs text-muted-foreground">
+          {used != null ? used.toLocaleString("vi-VN") : "0"} / {isUnlimited ? "Không giới hạn" : total?.toLocaleString("vi-VN")}
         </span>
       </div>
-      <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
+      <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
         <div
-          className={cn("h-full rounded-full transition-all", pct >= 90 ? "bg-red-500" : pct >= 70 ? "bg-amber-500" : "bg-emerald-500")}
-          style={{ width: `${pct}%` }}
+          className={cn("h-full transition-all duration-300", isUnlimited ? "bg-emerald-500/50 w-full" : color.replace("text-", "bg-"))}
+          style={{ width: isUnlimited ? "100%" : `${pct}%` }}
         />
       </div>
-      <p className="text-right text-xs text-muted-foreground">
-        Đã dùng {used.toLocaleString("vi-VN")} / {total.toLocaleString("vi-VN")}
-      </p>
     </div>
   );
 }
@@ -73,7 +73,7 @@ export function BillingManager() {
   const [activePayment, setActivePayment] = useState<Payment | null>(null);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState<string | null>(null);
-  const [isContinuing, setIsContinuing] = useState<string | null>(null);
+  const [isCancelling, setIsCancelling] = useState<string | null>(null);
   const [businessProfile, setBusinessProfile] = useState<Business | null>(null);
   
   const params = useParams();
@@ -131,60 +131,30 @@ export function BillingManager() {
 
   const activePlanData = activePayment ? (activePayment as any).subscriptionPlan as Subscription : null;
 
-  // Hàm tiếp tục thanh toán cho đơn đang xử lý (Pending)
-  const handleContinuePayment = async (payment: Payment) => {
+  // Hàm hủy đơn thanh toán đang xử lý (Pending)
+  const handleCancelPayment = async (payment: Payment) => {
     if (!payment.orderCode) {
       toast.error("Đơn này không có mã thanh toán (Order Code)");
       return;
     }
+    if (!window.confirm(`Bạn có chắc chắn muốn hủy đơn thanh toán #${payment.orderCode} (Đang xử lý) không?`)) {
+      return;
+    }
     const targetId = payment.id || String(payment.orderCode);
-    setIsContinuing(targetId);
+    setIsCancelling(targetId);
     try {
-      // 1. Thử gọi API chi tiết đơn để lấy link thanh toán PayOS hiện tại
-      const detailRes = await paymentAPI.getByOrderCode(payment.orderCode);
-      const url = (detailRes.data as any)?.paymentUrl || (detailRes.data as any)?.checkoutUrl || (detailRes.data as any)?.url || (payment as any)?.paymentUrl || (payment as any)?.checkoutUrl || (typeof detailRes.data === 'string' && (detailRes.data as string).startsWith('http') ? detailRes.data : null);
+      await paymentAPI.cancelPayment(payment.orderCode);
+      toast.success(`Đã hủy giao dịch #${payment.orderCode} thành công! Bạn có thể chọn mua lại gói cước.`);
       
-      if (url) {
-        toast.info("Đang tiếp tục thanh toán...", { description: "Đang mở cổng thanh toán PayOS cho đơn hàng #" + payment.orderCode });
-        window.location.href = url;
-        return;
-      }
-
-      // 2. Nếu getByOrderCode không trả về link cũ, thử khởi tạo link thanh toán lại với ID gói cước tương ứng
-      let planId = (payment as any).subscriptionPlanId || (detailRes.data as any)?.subscriptionPlanId;
-      if (!planId && plans.length > 0) {
-        const matchPlan = plans.find(p => p.name === payment.subscriptionName || p.price === payment.amount);
-        if (matchPlan) planId = matchPlan.id;
-      }
-
-      if (planId) {
-        toast.info("Đang kết nối lại cổng thanh toán...");
-        const res = await paymentAPI.createPaymentLink({
-          subscriptionPlanId: planId,
-          returnUrlDomain: window.location.origin
-        });
-        const newUrl = res?.data?.paymentUrl || (res?.data as any)?.checkoutUrl || (res as any)?.paymentUrl || (res as any)?.checkoutUrl || (typeof res.data === 'string' && (res.data as string).startsWith('http') ? res.data : null);
-        if (newUrl) {
-          window.location.href = newUrl;
-          return;
-        }
-      }
-
-      toast.error("Không tìm thấy đường dẫn thanh toán cho đơn này", {
-        description: "Vui lòng liên hệ hỗ trợ hoặc đợi đơn thanh toán cũ hết hạn để tạo đơn mới."
-      });
+      // Load lại danh sách thanh toán
+      const payRes = await paymentAPI.getUserPayments({ "Filter.PageSize": 50 });
+      setPayments(payRes.data?.items ?? []);
     } catch (err: any) {
-      console.error("Continue payment error:", err);
-      let errMsg = err.response?.data?.message || err.response?.data?.title || err.message;
-      if (typeof errMsg === "string" && (errMsg.toLowerCase().includes("already") || errMsg.toLowerCase().includes("pending") || errMsg.toLowerCase().includes("đang xử lý"))) {
-        toast.error("Đơn hàng này đang được chờ xác nhận từ cổng PayOS.", {
-          description: "Vui lòng hoàn tất thanh toán trên tab PayOS cũ trong trình duyệt của bạn."
-        });
-      } else {
-        toast.error("Không thể tiếp tục thanh toán", { description: errMsg });
-      }
+      console.error("Cancel payment error:", err);
+      const errMsg = err.response?.data?.message || err.response?.data?.title || err.message || "Không thể hủy đơn thanh toán này.";
+      toast.error("Lỗi khi hủy đơn", { description: errMsg });
     } finally {
-      setIsContinuing(null);
+      setIsCancelling(null);
     }
   };
 
@@ -194,19 +164,27 @@ export function BillingManager() {
       return;
     }
 
-    // Kiểm tra thông minh: Nếu doanh nghiệp đang có một đơn hàng Pending (Đang xử lý) cho gói cước này hoặc cùng mức giá
-    const pendingPayment = payments.find(p => p.status === "Pending" && (
-      (p.subscriptionName && p.subscriptionName === plan.name) || 
-      (p.amount === plan.price && plan.price > 0) ||
-      ((p as any).subscriptionPlanId === plan.id)
-    ));
-
+    // Kiểm tra thông minh: Nếu doanh nghiệp đang có một đơn hàng Pending (Đang xử lý)
+    const pendingPayment = payments.find(p => p.status === "Pending");
     if (pendingPayment && pendingPayment.orderCode) {
-      toast.info(`Bạn đang có đơn hàng #${pendingPayment.orderCode} (Đang xử lý) cho gói ${plan.name}.`, {
-        description: "Hệ thống đang mở lại cổng thanh toán cho đơn hàng này..."
-      });
-      await handleContinuePayment(pendingPayment);
-      return;
+      if (window.confirm(`Bạn đang có đơn hàng #${pendingPayment.orderCode} (Đang xử lý). Bạn có muốn tự động hủy đơn cũ này để tạo thanh toán mới cho gói ${plan.name} không?`)) {
+        try {
+          toast.loading("Đang hủy đơn thanh toán cũ...", { id: "cancel-old" });
+          await paymentAPI.cancelPayment(pendingPayment.orderCode);
+          toast.dismiss("cancel-old");
+          toast.success("Đã hủy đơn cũ thành công! Đang mở cổng thanh toán mới...");
+          // Cập nhật lại list
+          const payRes = await paymentAPI.getUserPayments({ "Filter.PageSize": 50 });
+          setPayments(payRes.data?.items ?? []);
+        } catch (e: any) {
+          toast.dismiss("cancel-old");
+          const errMsg = e.response?.data?.message || e.response?.data?.title || e.message;
+          toast.error("Không thể hủy đơn hàng cũ", { description: errMsg });
+          return;
+        }
+      } else {
+        return;
+      }
     }
 
     setIsSubscribing(plan.id);
@@ -246,8 +224,19 @@ export function BillingManager() {
       if (err.response?.status === 400 && typeof errMsg === "string" && (errMsg.toLowerCase().includes("pending") || errMsg.toLowerCase().includes("processing") || errMsg.toLowerCase().includes("đang xử lý") || errMsg.toLowerCase().includes("already"))) {
         const anyPending = payments.find(p => p.status === "Pending");
         if (anyPending && anyPending.orderCode) {
-          toast.info("Đang tự động chuyển đến đơn thanh toán đang xử lý...", { description: errMsg });
-          await handleContinuePayment(anyPending);
+          if (window.confirm(`Hệ thống báo bạn đang có đơn hàng #${anyPending.orderCode} (Đang xử lý). Bạn có muốn tự động hủy đơn cũ này để tạo lại thanh toán mới không?`)) {
+            try {
+              toast.loading("Đang hủy đơn hàng cũ...", { id: "cancel-old-catch" });
+              await paymentAPI.cancelPayment(anyPending.orderCode);
+              toast.dismiss("cancel-old-catch");
+              toast.success("Đã hủy đơn cũ thành công! Vui lòng chọn lại gói cước.");
+              const payRes = await paymentAPI.getUserPayments({ "Filter.PageSize": 50 });
+              setPayments(payRes.data?.items ?? []);
+            } catch (e: any) {
+              toast.dismiss("cancel-old-catch");
+              toast.error("Không thể hủy đơn hàng cũ", { description: e?.message || "Lỗi khi hủy" });
+            }
+          }
           return;
         }
       }
@@ -375,7 +364,7 @@ export function BillingManager() {
                   ) : (
                     payments.map((payment) => {
                       const planNameDisplay = payment.subscriptionName || (payment as any).planName || (payment as any).description || plans.find(p => p.price === payment.amount)?.name || "—";
-                      const isTargeting = isContinuing === (payment.id || String(payment.orderCode));
+                      const isTargeting = isCancelling === (payment.id || String(payment.orderCode));
                       return (
                         <TableRow key={payment.id || payment.orderCode} className={payment.status === "Pending" ? "bg-amber-500/5 hover:bg-amber-500/10 transition-colors" : ""}>
                           <TableCell className="pl-6 font-mono text-xs font-semibold">{payment.orderCode ?? "—"}</TableCell>
@@ -390,17 +379,17 @@ export function BillingManager() {
                               </Badge>
                               {payment.status === "Pending" && (
                                 <button
-                                  onClick={() => handleContinuePayment(payment)}
+                                  onClick={() => handleCancelPayment(payment)}
                                   disabled={isTargeting}
-                                  className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 hover:text-amber-700 hover:underline transition-all bg-amber-500/10 px-2.5 py-1 rounded-md border border-amber-500/30 shadow-sm cursor-pointer disabled:opacity-50"
-                                  title="Nhấn để tiếp tục thanh toán đơn này trên cổng PayOS"
+                                  className="inline-flex items-center gap-1 text-[11px] font-bold text-red-600 hover:text-red-700 hover:underline transition-all bg-red-500/10 px-2.5 py-1 rounded-md border border-red-500/30 shadow-sm cursor-pointer disabled:opacity-50"
+                                  title="Nhấn để hủy giao dịch đang xử lý này"
                                 >
                                   {isTargeting ? (
                                     <Loader2 className="h-3 w-3 animate-spin inline" />
                                   ) : (
-                                    <ExternalLink className="h-3 w-3 inline" />
+                                    <XCircle className="h-3.5 w-3.5 inline" />
                                   )}
-                                  Thanh toán tiếp &rarr;
+                                  Hủy đơn
                                 </button>
                               )}
                             </div>

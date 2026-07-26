@@ -94,6 +94,14 @@ export const paymentAPI = {
     return data;
   },
 
+  /** DELETE /api/v1/payments/cancel/{orderCode} — Hủy đơn thanh toán đang xử lý */
+  cancelPayment: async (orderCode: number): Promise<MainApiWrapper<any>> => {
+    const { data } = await mainAxiosClient.delete<MainApiWrapper<any>>(
+      `/payments/cancel/${orderCode}`
+    );
+    return data;
+  },
+
   createPaymentLink: async (body: {
     subscriptionPlanId: string;
     returnUrlDomain: string;

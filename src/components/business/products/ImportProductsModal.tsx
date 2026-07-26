@@ -96,9 +96,13 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
       }, 1500);
     } catch (error: any) {
       console.error("Import error:", error);
-      const msg = error?.response?.data?.message || error?.response?.data?.title || error?.message || "Đã xảy ra lỗi khi tải file lên.";
+      let msg = error?.response?.data?.message || error?.response?.data?.title || (typeof error?.response?.data === "string" ? error.response.data : null) || error?.message || "Đã xảy ra lỗi khi tải file lên.";
+      if (error?.response?.data?.errors && typeof error.response.data.errors === "object") {
+        const errDetails = Object.values(error.response.data.errors).flat().join(" ");
+        if (errDetails) msg = `${msg} (${errDetails})`;
+      }
       setErrorMessage(msg);
-      toast.error("Đã xảy ra lỗi trong quá trình import.");
+      toast.error(msg);
       setStatus("error");
     }
   };
