@@ -87,6 +87,11 @@ export const mainAuthAPI = {
       
       const role = mapJwtRoleToUserRole(rawRole as string);
       const tenantId = (jwtPayload["businessSlug"] || jwtPayload["tenantId"] || null) as string | null;
+      
+      const serverApiKey = payload.apiKey || jwtPayload.apiKey || jwtPayload.ApiKey || jwtPayload["api-key"];
+      if (serverApiKey) {
+        localStorage.setItem("bo_api_key", serverApiKey as string);
+      }
 
       // Lưu token + cookies
       saveMainToken(token, { role, tenantId, rememberMe: request.rememberMe });

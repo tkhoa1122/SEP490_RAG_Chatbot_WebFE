@@ -13,7 +13,6 @@ function AdminLoginContent() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [apiKey, setApiKey] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -35,11 +34,6 @@ function AdminLoginContent() {
       setEmail(savedEmail);
       setRememberMe(true);
     }
-    
-    const savedApiKey = localStorage.getItem("remembered_api_key");
-    if (savedApiKey) {
-      setApiKey(savedApiKey);
-    }
 
     // Trình duyệt sẽ tự động xóa session cookies khi tắt trình duyệt
     // Không cần dùng beforeunload vì nó sẽ chạy cả khi chuyển trang (redirect)
@@ -55,20 +49,11 @@ function AdminLoginContent() {
       // Tránh trường hợp cookie cũ (sai role/tenant) gây lỗi 403 sau khi redirect
       mainAuthAPI.logout();
 
-      // ── Bước 2: Ghi nhớ / xóa email & api key ─────────────────────────────────────────
+      // ── Bước 2: Ghi nhớ / xóa email ─────────────────────────────────────────
       if (rememberMe) {
         localStorage.setItem("remembered_email", email);
-        if (apiKey) localStorage.setItem("remembered_api_key", apiKey);
       } else {
         localStorage.removeItem("remembered_email");
-        localStorage.removeItem("remembered_api_key");
-      }
-      
-      // Lưu API Key dùng cho phiên này (nếu có)
-      if (apiKey) {
-        localStorage.setItem("bo_api_key", apiKey);
-      } else {
-        localStorage.removeItem("bo_api_key");
       }
 
       // ── Bước 3: Gọi API đăng nhập ────────────────────────────────────────────
@@ -176,26 +161,6 @@ function AdminLoginContent() {
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
-          </div>
-        </div>
-
-        {/* API Key (Optional for BO) */}
-        <div className="space-y-2">
-          <label htmlFor="admin-api-key" className="text-[13px] font-semibold text-[#1c362b]">
-            API Key (Bắt buộc nếu là Business Owner)
-          </label>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-              <LockKeyhole className="h-4 w-4 text-slate-400" />
-            </div>
-            <input
-              id="admin-api-key"
-              type="text"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="ssc_live_..."
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-4 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-[#5a9c82] focus:outline-none focus:ring-4 focus:ring-[#5a9c82]/10 transition-all"
-            />
           </div>
         </div>
 
