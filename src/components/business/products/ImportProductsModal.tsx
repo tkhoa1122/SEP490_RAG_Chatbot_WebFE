@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { UploadCloud, FileSpreadsheet, CheckCircle2, Loader2, AlertCircle, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import Papa from "papaparse";
+import * as XLSX from "xlsx";
 import { productAPI } from "@/infrastructure/api/productAPI";
 
 interface ImportProductsModalProps {
@@ -149,27 +150,23 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
     const isExcel = file.name.toLowerCase().endsWith(".xls") || file.name.toLowerCase().endsWith(".xlsx");
     
     if (isExcel) {
-      try {
-        const XLSX = await import("xlsx");
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-          try {
-            const buffer = e.target?.result as ArrayBuffer;
-            const workbook = XLSX.read(buffer, { type: "array" });
-            const firstSheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[firstSheetName];
-            const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" }) as Record<string, string>[];
-            await processData(jsonData);
-          } catch (error) {
-            toast.error("Lỗi đọc file Excel.");
-            setStatus("error");
-          }
-        };
-        reader.readAsArrayBuffer(file);
-      } catch (err) {
-        toast.error("Không thể tải thư viện đọc file Excel.");
-        setStatus("error");
-      }
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const buffer = e.target?.result as ArrayBuffer;
+          const data = new Uint8Array(buffer);
+          const workbook = XLSX.read(data, { type: "array" });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" }) as Record<string, string>[];
+          await processData(jsonData);
+        } catch (error) {
+          console.error("Excel parsing error:", error);
+          toast.error("Lỗi đọc file Excel. Vui lòng kiểm tra lại định dạng file.");
+          setStatus("error");
+        }
+      };
+      reader.readAsArrayBuffer(file);
     } else {
       Papa.parse(file, {
         header: true,
