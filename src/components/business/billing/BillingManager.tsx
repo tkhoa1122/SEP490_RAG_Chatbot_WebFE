@@ -105,6 +105,19 @@ export function BillingManager() {
           } catch (e) {
              setActivePayment(completed);
           }
+        } else {
+          // Nếu chưa có giao dịch Completed nào (ví dụ doanh nghiệp dùng gói miễn phí Basic mặc định),
+          // tự động lấy gói cước từ businessProfile hoặc gói cước có giá = 0 / gói Basic để hiển thị "Đang hoạt động".
+          const profile: any = profileRes?.data;
+          const allPlans = plansRes.data?.items ?? [];
+          const defaultPlan = allPlans.find((p: any) => p.id === profile?.subscriptionPlanId || p.price === 0 || p.name?.toLowerCase().includes("basic")) || allPlans[0];
+          if (defaultPlan) {
+            setActivePayment({
+              subscriptionPlan: defaultPlan,
+              status: "Completed",
+              amount: defaultPlan.price || 0
+            } as any);
+          }
         }
       } catch (err: any) {
         toast.error("Không thể tải thông tin thanh toán");
@@ -126,7 +139,7 @@ export function BillingManager() {
     try {
       const res = await paymentAPI.createPaymentLink({
         subscriptionPlanId: plan.id,
-        returnUrlDomain: window.location.href
+        returnUrlDomain: window.location.origin
       });
       
       // Handle various response wrappers (data, paymentUrl, checkoutUrl)
@@ -144,6 +157,17 @@ export function BillingManager() {
       console.error("Payment API Error:", err);
       let errMsg = err.response?.data?.message || err.response?.data?.title || err.message;
       if (err.response?.status === 402) errMsg = "Tài khoản cần nâng cấp hoặc thanh toán thất bại (402).";
+      
+      // Xử lý thông minh lỗi Lỗi 1: Nếu BE báo doanh nghiệp đã có gói cước này rồi
+      if (err.response?.status === 400 && typeof errMsg === "string" && errMsg.toLowerCase().includes("already has an active subscription")) {
+        toast.success("Gói cước này đang được kích hoạt cho doanh nghiệp của bạn!", {
+          description: "Hệ thống đã cập nhật hiển thị gói cước hiện tại."
+        });
+        setActivePayment({ subscriptionPlan: plan, status: "Completed", amount: plan.price } as any);
+        setIsPricingModalOpen(false);
+        return;
+      }
+
       if (err.response?.status === 400) errMsg = errMsg || "Dữ liệu không hợp lệ (400).";
       
       toast.error("Không thể khởi tạo thanh toán", {
