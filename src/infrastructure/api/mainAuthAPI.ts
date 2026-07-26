@@ -78,12 +78,14 @@ export const mainAuthAPI = {
       const jwtPayload = decodeJwtPayload(token);
       console.log("🔑 [Login] JWT decoded:", jwtPayload);
 
-      const rawRole = (
+      let rawRole = (
         jwtPayload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
         jwtPayload["role"] ||
         ""
-      ) as string;
-      const role = mapJwtRoleToUserRole(rawRole);
+      );
+      if (Array.isArray(rawRole)) rawRole = rawRole[0];
+      
+      const role = mapJwtRoleToUserRole(rawRole as string);
       const tenantId = (jwtPayload["businessSlug"] || jwtPayload["tenantId"] || null) as string | null;
 
       // Lưu token + cookies
