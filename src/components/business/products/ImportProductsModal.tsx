@@ -5,8 +5,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from "@/components/ui/button";
 import { UploadCloud, FileSpreadsheet, CheckCircle2, Loader2, AlertCircle, X } from "lucide-react";
 import { toast } from "react-hot-toast";
-import Papa from "papaparse";
-import { read, utils } from "xlsx";
 import { productAPI } from "@/infrastructure/api/productAPI";
 
 interface ImportProductsModalProps {
@@ -81,146 +79,27 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
 
   const handleImport = async () => {
     if (!file) return;
-    
-    setStatus("validating");
-    setProgress(10);
-    
-    const processData = async (data: Record<string, string>[]) => {
-        if (data.length === 0) {
-          const msg = "File trống hoặc không đúng định dạng (không tìm thấy dòng dữ liệu nào).";
-          setErrorMessage(msg);
-          toast.error(msg);
-          setStatus("error");
-          return;
-        }
 
-        setStatus("uploading");
-        setProgress(30);
+    setStatus("uploading");
+    setProgress(30);
 
-        try {
-          let successCount = 0;
-          let failCount = 0;
-          
-          for (let i = 0; i < data.length; i++) {
-            const row = data[i];
-            
-            // Map row to ProductCreateCommand
-            // Hỗ trợ cả tiếng Anh lẫn tiếng Việt và cấu trúc file variants_export_*.xlsx
-            const imageUrlsStr = row.imageUrls || row.imageUrl || row["Hình ảnh"] || row.images || "";
-            const parsedImages = typeof imageUrlsStr === "string" 
-              ? imageUrlsStr.split("|").map(u => u.trim()).filter(Boolean)
-              : (Array.isArray(imageUrlsStr) ? imageUrlsStr : []);
+    try {
+      await productAPI.importProducts(file);
+      setStatus("success");
+      setProgress(100);
+      toast.success("Import dữ liệu sản phẩm thành công!");
 
-            const payload = {
-              externalId: String(row.sku || row.variantId || row.productId || row.externalId || row["Mã SP"] || `IMPORT-${Date.now()}-${i}`),
-              name: row.Name || row["Tên"] || row.name || row.productName || row.variantName || "Sản phẩm chưa đặt tên",
-              description: row.Description || row["Mô tả"] || row.description || row.productDescription || null,
-              price: parseFloat(String(row.Price || row["Giá"] || row.price || "0")),
-              currency: row.currency || row.Currency || "VND",
-              brand: row.brand || row.Brand || row.brandName || row["Thương hiệu"] || null,
-              stockQuantity: parseInt(String(row.Stock || row["Tồn Kho"] || row.stock || row["Số lượng"] || row.stockQuantity || "0"), 10),
-              category: row.Category || row["Danh mục"] || row.category || row.categoryName || null,
-              images: parsedImages.length > 0 ? parsedImages : null,
-              metadata: row.attributes ? { attributes: String(row.attributes) } : null
-            };
-
-            try {
-              await productAPI.createProduct(payload);
-              successCount++;
-            } catch (err) {
-              console.error("Error importing row", row, err);
-              failCount++;
-            }
-            
-            // Update progress
-            const currentProgress = 30 + Math.floor(((i + 1) / data.length) * 65);
-            setProgress(currentProgress);
-            
-            // Change status to indexing/processing around 70%
-            if (currentProgress > 70 && status !== "indexing") {
-              setStatus("indexing");
-            }
-          }
-
-          setStatus("success");
-          setProgress(100);
-          
-          if (failCount > 0) {
-            toast.success(`Import hoàn tất: ${successCount} thành công, ${failCount} thất bại.`);
-          } else {
-            toast.success(`Import hoàn tất ${successCount} sản phẩm thành công!`);
-          }
-          
-          setTimeout(() => {
-            onSuccess();
-            onClose();
-            clearFile();
-          }, 2000);
-          
-        } catch (error: any) {
-          const msg = error?.message || "Đã xảy ra lỗi không xác định khi gọi API.";
-          setErrorMessage(msg);
-          toast.error("Đã xảy ra lỗi trong quá trình import.");
-          setStatus("error");
-        }
-    };
-
-    const isExcel = file.name.toLowerCase().endsWith(".xls") || file.name.toLowerCase().endsWith(".xlsx") || file.name.toLowerCase().endsWith(".json");
-    
-    if (isExcel) {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          const buffer = e.target?.result as ArrayBuffer;
-          
-          // Kiểm tra tự động nếu nội dung thực tế là JSON (kể cả khi đuôi file là .xlsx)
-          const textDecoder = new TextDecoder("utf-8");
-          const text = textDecoder.decode(buffer).trim();
-          if (text.startsWith("{") || text.startsWith("[")) {
-            try {
-              const parsedJson = JSON.parse(text);
-              const items = Array.isArray(parsedJson) ? parsedJson : (Array.isArray(parsedJson.data) ? parsedJson.data : (Array.isArray(parsedJson.items) ? parsedJson.items : []));
-              if (items.length > 0) {
-                await processData(items);
-                return;
-              }
-            } catch (jsonErr) {
-              // Nếu không phải JSON hợp lệ thì parse tiếp theo chuẩn Excel nhị phân
-            }
-          }
-
-          const data = new Uint8Array(buffer);
-          const workbook = read(data, { type: "array" });
-          
-          if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
-            throw new Error("File Excel không có sheet nào.");
-          }
-          
-          const firstSheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[firstSheetName];
-          const jsonData = utils.sheet_to_json(worksheet, { defval: "" }) as Record<string, string>[];
-          await processData(jsonData);
-        } catch (error: any) {
-          console.error("Excel parsing error:", error);
-          const msg = error?.message || "Lỗi không xác định khi đọc file Excel.";
-          setErrorMessage(`Lỗi đọc file Excel: ${msg}`);
-          toast.error("Lỗi đọc file Excel. Vui lòng kiểm tra lại định dạng file.");
-          setStatus("error");
-        }
-      };
-      reader.readAsArrayBuffer(file);
-    } else {
-      Papa.parse(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: async (results) => {
-          await processData(results.data as Record<string, string>[]);
-        },
-        error: (error) => {
-          toast.error(`Lỗi đọc file CSV: ${error.message}`);
-          setStatus("error");
-        }
-      });
+      setTimeout(() => {
+        onSuccess();
+        onClose();
+        clearFile();
+      }, 1500);
+    } catch (error: any) {
+      console.error("Import error:", error);
+      const msg = error?.response?.data?.message || error?.response?.data?.title || error?.message || "Đã xảy ra lỗi khi tải file lên.";
+      setErrorMessage(msg);
+      toast.error("Đã xảy ra lỗi trong quá trình import.");
+      setStatus("error");
     }
   };
 
