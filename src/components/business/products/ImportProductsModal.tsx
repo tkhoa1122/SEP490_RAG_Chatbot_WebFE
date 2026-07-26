@@ -74,17 +74,13 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
     }
   };
 
-  const handleImport = () => {
+  const handleImport = async () => {
     if (!file) return;
     
     setStatus("validating");
     setProgress(10);
     
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: async (results) => {
-        const data = results.data as Record<string, string>[];
+    const processData = async (data: Record<string, string>[]) => {
         if (data.length === 0) {
           toast.error("File CSV trống hoặc không đúng định dạng.");
           setStatus("error");
@@ -148,12 +144,45 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
           toast.error("Đã xảy ra lỗi trong quá trình import.");
           setStatus("error");
         }
-      },
-      error: (error) => {
-        toast.error(`Lỗi đọc file: ${error.message}`);
+    };
+
+    const isExcel = file.name.toLowerCase().endsWith(".xls") || file.name.toLowerCase().endsWith(".xlsx");
+    
+    if (isExcel) {
+      try {
+        const XLSX = await import("xlsx");
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            const buffer = e.target?.result as ArrayBuffer;
+            const workbook = XLSX.read(buffer, { type: "array" });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" }) as Record<string, string>[];
+            await processData(jsonData);
+          } catch (error) {
+            toast.error("Lỗi đọc file Excel.");
+            setStatus("error");
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      } catch (err) {
+        toast.error("Không thể tải thư viện đọc file Excel.");
         setStatus("error");
       }
-    });
+    } else {
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: async (results) => {
+          await processData(results.data as Record<string, string>[]);
+        },
+        error: (error) => {
+          toast.error(`Lỗi đọc file CSV: ${error.message}`);
+          setStatus("error");
+        }
+      });
+    }
   };
 
   const handleClose = () => {
