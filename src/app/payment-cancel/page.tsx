@@ -1,14 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { XCircle } from "lucide-react";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams, useParams } from "next/navigation";
+import { XCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MAIN_USER_KEY } from "@/infrastructure/api/mainAxiosClient";
 
-export default function PaymentCancelPage() {
+function PaymentCancelContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const params = useParams();
   const [returnUrl, setReturnUrl] = useState("/login");
+
+  const paramCode = params?.orderCode;
+  const orderCodeStr = Array.isArray(paramCode) ? paramCode[0] : paramCode || searchParams?.get("orderCode");
 
   useEffect(() => {
     // Cố gắng tìm tenantId từ localStorage để quay về đúng dashboard
@@ -33,6 +38,11 @@ export default function PaymentCancelPage() {
           <XCircle className="w-10 h-10" />
         </div>
         <h1 className="text-2xl font-bold text-foreground">Thanh toán đã bị hủy</h1>
+        {orderCodeStr && (
+          <p className="font-mono text-sm bg-muted/50 py-1.5 px-3 rounded-md inline-block text-muted-foreground border">
+            Mã đơn hàng: <strong className="text-foreground">#{orderCodeStr}</strong>
+          </p>
+        )}
         <p className="text-muted-foreground">
           Giao dịch của bạn chưa được hoàn tất hoặc đã bị hủy. Tài khoản chưa bị trừ tiền.
         </p>
@@ -43,5 +53,13 @@ export default function PaymentCancelPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PaymentCancelPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin" /></div>}>
+      <PaymentCancelContent />
+    </Suspense>
   );
 }

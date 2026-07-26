@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, useParams } from "next/navigation";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MAIN_USER_KEY } from "@/infrastructure/api/mainAxiosClient";
@@ -13,8 +13,12 @@ import { Suspense } from "react";
 function PaymentSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const params = useParams();
   const [returnUrl, setReturnUrl] = useState("/login");
   const [verifying, setVerifying] = useState(true);
+
+  const paramCode = params?.orderCode;
+  const orderCodeStr = Array.isArray(paramCode) ? paramCode[0] : paramCode || searchParams?.get("orderCode");
 
   useEffect(() => {
     // Kích hoạt pháo giấy chúc mừng
@@ -56,9 +60,8 @@ function PaymentSuccessContent() {
     }
 
     // Xác nhận thanh toán qua API Mock do Webhook thật không thể gọi vào localhost
-    const orderCode = searchParams.get("orderCode");
-    if (orderCode) {
-      paymentAPI.simulatePaymentSuccess(Number(orderCode))
+    if (orderCodeStr) {
+      paymentAPI.simulatePaymentSuccess(Number(orderCodeStr))
         .then(() => toast.success("Hệ thống đã ghi nhận thanh toán thành công!"))
         .catch(() => toast.error("Có lỗi xảy ra khi xác nhận thanh toán (Mock Webhook)"))
         .finally(() => setVerifying(false));
@@ -67,7 +70,7 @@ function PaymentSuccessContent() {
     }
 
     return () => clearInterval(interval);
-  }, [searchParams]);
+  }, [orderCodeStr]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
