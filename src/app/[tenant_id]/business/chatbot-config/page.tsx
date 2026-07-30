@@ -110,17 +110,7 @@ export default function ChatbotConfigPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-3">
-                <Label htmlFor="model">Mô hình sử dụng (Model)</Label>
-                <select 
-                  id="model" 
-                  className="w-full h-10 px-3 rounded-md border border-input bg-muted text-sm"
-                  disabled
-                >
-                  <option>Mặc định (GPT-4o / Mặc định hệ thống)</option>
-                </select>
-                <p className="text-xs text-muted-foreground">Hiện tại hệ thống sử dụng model mặc định (chưa mở tùy chọn custom).</p>
-              </div>
+              {/* Mô hình đã bị ẩn vì API không hỗ trợ */}
 
               <div className="space-y-3">
                 <div className="flex justify-between">
