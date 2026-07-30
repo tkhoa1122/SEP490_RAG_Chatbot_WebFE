@@ -23,6 +23,7 @@ import type {
   Business, BusinessStatus, BusinessRegistrationCommand, UpdateBusinessCommand, BusinessFilter,
   BusinessConfig, UpdateBusinessConfigCommand,
   CatalogMember, UserStatus, MemberRegistrationCommand, UpdateMemberCommand, MemberFilter,
+  BusinessProfileDto,
 } from "@/infrastructure/dto/BusinessDTO";
 import type { MainApiWrapper, MainPaginatedList } from "@/infrastructure/dto/MainApiWrapper";
 
@@ -31,6 +32,7 @@ export type {
   Business, BusinessStatus, BusinessRegistrationCommand, UpdateBusinessCommand, BusinessFilter,
   BusinessConfig, UpdateBusinessConfigCommand,
   CatalogMember, UserStatus, MemberRegistrationCommand, UpdateMemberCommand, MemberFilter,
+  BusinessProfileDto,
 } from "@/infrastructure/dto/BusinessDTO";
 
 // ── Business API ───────────────────────────────────────────────────────────────
@@ -68,9 +70,18 @@ export const businessAPI = {
 
   // ── BO/CT endpoints ──────────────────────────────────────────────────────────
 
+  /** GET /api/v1/business-quotas — Lấy lịch sử tiêu hao token (Usage Logs) */
+  getUsageLogs: async (filter?: any): Promise<MainApiWrapper<MainPaginatedList<any>>> => {
+    const { data } = await mainAxiosClient.get<MainApiWrapper<MainPaginatedList<any>>>(
+      "/business-quotas",
+      { params: filter }
+    );
+    return data;
+  },
+
   /** GET /api/v1/businesses/profile — BO/CT xem profile */
-  getProfile: async (): Promise<MainApiWrapper<Business>> => {
-    const { data } = await mainAxiosClient.get<MainApiWrapper<Business>>(
+  getProfile: async (): Promise<MainApiWrapper<BusinessProfileDto>> => {
+    const { data } = await mainAxiosClient.get<MainApiWrapper<BusinessProfileDto>>(
       "/businesses/profile"
     );
     return data;

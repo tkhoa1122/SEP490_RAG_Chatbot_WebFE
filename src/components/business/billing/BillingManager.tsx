@@ -18,11 +18,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { paymentAPI, subscriptionAPI, type Payment, type Subscription, type PaymentStatus } from "@/infrastructure/api/subscriptionAPI";
-import { businessAPI, type Business } from "@/infrastructure/api/businessAPI";
+import { businessAPI, type Business, type BusinessProfileDto } from "@/infrastructure/api/businessAPI";
+import { UsageLogsClient } from "./UsageLogsClient";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -33,15 +35,28 @@ const PAYMENT_STATUS_MAP: Record<PaymentStatus, { label: string; cls: string }> 
   Cancelled: { label: "Đã hủy", cls: "bg-slate-500/10 text-slate-500 border-slate-400/20" },
 };
 
-function QuotaBar({ label, used, total, icon: Icon, color }: {
+function QuotaBar({ label, used, total, icon: Icon, color, hideProgress = false }: {
   label: string;
   used?: number;
   total?: number;
   icon: any;
   color: string;
+  hideProgress?: boolean;
 }) {
   const isUnlimited = total == null || total === -1 || total === 0;
-  const pct = isUnlimited || !used || !total ? 0 : Math.min(Math.round((used / total) * 100), 100);
+  const safeUsed = used || 0;
+  const safeTotal = total || 0;
+  
+  // Calculate remaining logic
+  const remaining = Math.max(safeTotal - safeUsed, 0);
+  const remainingPct = isUnlimited ? 100 : Math.min(Math.round((remaining / safeTotal) * 100), 100);
+
+  // Determine dynamic bar color based on remaining percentage
+  let barColor = "bg-emerald-500";
+  if (!isUnlimited) {
+    if (remainingPct <= 20) barColor = "bg-red-500";
+    else if (remainingPct <= 50) barColor = "bg-amber-500";
+  }
 
   return (
     <div className="space-y-2">
@@ -51,15 +66,20 @@ function QuotaBar({ label, used, total, icon: Icon, color }: {
           <span>{label}</span>
         </div>
         <span className="font-mono text-xs text-muted-foreground">
-          {used != null ? used.toLocaleString("vi-VN") : "0"} / {isUnlimited ? "Không giới hạn" : total?.toLocaleString("vi-VN")}
+          {hideProgress 
+            ? (isUnlimited ? "Không giới hạn" : `Tối đa ${safeTotal.toLocaleString("vi-VN")}`) 
+            : `${safeUsed.toLocaleString("vi-VN")} / ${isUnlimited ? "Không giới hạn" : safeTotal.toLocaleString("vi-VN")}`
+          }
         </span>
       </div>
-      <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-        <div
-          className={cn("h-full transition-all duration-300", isUnlimited ? "bg-emerald-500/50 w-full" : color.replace("text-", "bg-"))}
-          style={{ width: isUnlimited ? "100%" : `${pct}%` }}
-        />
-      </div>
+      {!hideProgress && (
+        <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+          <div
+            className={cn("h-full transition-all duration-300", barColor)}
+            style={{ width: `${remainingPct}%` }}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -74,7 +94,7 @@ export function BillingManager() {
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState<string | null>(null);
-  const [businessProfile, setBusinessProfile] = useState<Business | null>(null);
+  const [businessProfile, setBusinessProfile] = useState<BusinessProfileDto | null>(null);
   
   const params = useParams();
   const tenantId = params?.tenant_id as string;
@@ -252,8 +272,15 @@ export function BillingManager() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-6 md:grid-cols-12">
+    <>
+      <Tabs defaultValue="billing" className="w-full flex flex-col gap-6">
+        <TabsList>
+          <TabsTrigger value="billing">Gói cước & Thanh toán</TabsTrigger>
+          <TabsTrigger value="usage">Lịch sử tiêu hao</TabsTrigger>
+        </TabsList>
+
+      <TabsContent value="billing" className="mt-0 outline-none">
+        <div className="grid gap-6 md:grid-cols-12">
         {/* Active Plan & Quota Card */}
         <div className="md:col-span-5 lg:col-span-4">
           <Card className="h-full border-primary/20 bg-primary/5">
@@ -284,24 +311,25 @@ export function BillingManager() {
                     <div className="space-y-5">
                        <QuotaBar
                           label="Token AI"
-                          used={0}
-                          total={activePlanData.tokenLimit || 0}
+                          used={businessProfile?.businessQuota?.usedTokens || 0}
+                          total={businessProfile?.businessQuota?.tokenLimit || activePlanData.tokenLimit || 0}
                           icon={Zap}
                           color="text-violet-500"
                         />
                         <QuotaBar
                           label="Tin nhắn"
-                          used={0}
-                          total={activePlanData.messageLimit || 0}
+                          used={businessProfile?.businessQuota?.usedMessages || 0}
+                          total={businessProfile?.businessQuota?.messageLimit || activePlanData.messageLimit || 0}
                           icon={MessageSquare}
                           color="text-blue-500"
                         />
                         <QuotaBar
                           label="Sản phẩm"
                           used={0}
-                          total={activePlanData.maxProductAllowed || 0}
+                          total={businessProfile?.businessQuota?.maxProductAllowed || activePlanData.maxProductAllowed || 0}
                           icon={Package}
                           color="text-emerald-500"
+                          hideProgress
                         />
                     </div>
                   </div>
@@ -407,6 +435,12 @@ export function BillingManager() {
           </Card>
         </div>
       </div>
+      </TabsContent>
+
+      <TabsContent value="usage" className="mt-0 outline-none">
+        <UsageLogsClient />
+      </TabsContent>
+    </Tabs>
 
       {/* Pricing Modal */}
       <Dialog open={isPricingModalOpen} onOpenChange={setIsPricingModalOpen}>
@@ -467,6 +501,6 @@ export function BillingManager() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

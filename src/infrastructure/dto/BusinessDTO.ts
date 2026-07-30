@@ -21,6 +21,22 @@ export interface Business {
   createdAt?: string;
 }
 
+export interface BusinessQuota {
+  id: string;
+  businessSubscriptionId?: string;
+  tokenLimit: number;
+  messageLimit: number;
+  usedTokens: number;
+  usedMessages: number;
+  maxProductAllowed: number;
+  resetDate?: string;
+}
+
+export interface BusinessProfileDto extends Business {
+  currentSubscription?: any; // DTO currentSubscription có thể mở rộng sau nếu cần
+  businessQuota?: BusinessQuota;
+}
+
 export interface BusinessRegistrationCommand {
   businessName: string;
   businessOwnerEmail: string;

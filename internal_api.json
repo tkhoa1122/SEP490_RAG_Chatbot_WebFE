@@ -548,6 +548,57 @@
                 ]
             }
         },
+        "/api/v1/business-quotas": {
+            "get": {
+                "tags": [
+                    "BusinessQuotas"
+                ],
+                "summary": "BO,CT gets usage logs for the current business quota",
+                "description": "Gets a paginated list of usage logs belonging to the current business quota",
+                "parameters": [
+                    {
+                        "name": "SourceType",
+                        "in": "query",
+                        "schema": {
+                            "$ref": "#/components/schemas/SourceTypeEnum"
+                        }
+                    },
+                    {
+                        "name": "OrderBy",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "PageIndex",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "PageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
         "/api/v1/catalog-teams": {
             "post": {
                 "tags": [
@@ -766,6 +817,177 @@
                 ]
             }
         },
+        "/api/v1/customers": {
+            "get": {
+                "tags": [
+                    "Customers"
+                ],
+                "summary": "BO,CT gets customers of the current business",
+                "description": "Gets paged customers scoped to the current business, with CustomerExternalId and status filters.",
+                "parameters": [
+                    {
+                        "name": "CustomerExternalId",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "Status",
+                        "in": "query",
+                        "schema": {
+                            "$ref": "#/components/schemas/CustomerStatus"
+                        }
+                    },
+                    {
+                        "name": "OrderBy",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "PageIndex",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "PageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/customers/{customerExternalId}/conversations": {
+            "get": {
+                "tags": [
+                    "Customers"
+                ],
+                "summary": "BO,CT gets conversations of a customer",
+                "description": "Gets paged conversations belonging to a CustomerExternalId in the current business.",
+                "parameters": [
+                    {
+                        "name": "customerExternalId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "pageIndex",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "pageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32",
+                            "default": 10
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/customers/{customerExternalId}/conversations/{conversationId}/messages": {
+            "get": {
+                "tags": [
+                    "Customers"
+                ],
+                "summary": "BO,CT gets a customer conversation messages",
+                "description": "Gets cursor-paged messages with content search and Customer/ChatBot sender filtering.",
+                "parameters": [
+                    {
+                        "name": "customerExternalId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "conversationId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "LastCursor",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "Limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "Search",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "SenderType",
+                        "in": "query",
+                        "schema": {
+                            "$ref": "#/components/schemas/SenderTypeEnum"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
         "/api/v1/documents/upload": {
             "post": {
                 "tags": [
@@ -870,6 +1092,57 @@
                         "required": true,
                         "schema": {
                             "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/import-jobs": {
+            "get": {
+                "tags": [
+                    "ImportJobs"
+                ],
+                "summary": "BO,CT gets import job logs",
+                "description": "Gets import jobs for the current business, with file name search and status filtering",
+                "parameters": [
+                    {
+                        "name": "FileName",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "Status",
+                        "in": "query",
+                        "schema": {
+                            "$ref": "#/components/schemas/ImportJobStatus"
+                        }
+                    },
+                    {
+                        "name": "PageIndex",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "PageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
                         }
                     }
                 ],
@@ -2146,6 +2419,15 @@
                 },
                 "additionalProperties": false
             },
+            "CustomerStatus": {
+                "enum": [
+                    "Active",
+                    "Inactive",
+                    "Deleted",
+                    "Banned"
+                ],
+                "type": "string"
+            },
             "ForgotPasswordCommand": {
                 "type": "object",
                 "properties": {
@@ -2155,6 +2437,17 @@
                     }
                 },
                 "additionalProperties": false
+            },
+            "ImportJobStatus": {
+                "enum": [
+                    "Pending",
+                    "Validating",
+                    "ImportingProducts",
+                    "Completed",
+                    "CompletedWithErrors",
+                    "Failed"
+                ],
+                "type": "string"
             },
             "KnowledgeDocumentStatus": {
                 "enum": [
@@ -2423,6 +2716,22 @@
                     }
                 },
                 "additionalProperties": false
+            },
+            "SenderTypeEnum": {
+                "enum": [
+                    "None",
+                    "Customer",
+                    "ChatBot"
+                ],
+                "type": "string"
+            },
+            "SourceTypeEnum": {
+                "enum": [
+                    "Chat",
+                    "EmbeddingProduct",
+                    "EmbeddingDocument"
+                ],
+                "type": "string"
             },
             "StatusEnums": {
                 "enum": [
