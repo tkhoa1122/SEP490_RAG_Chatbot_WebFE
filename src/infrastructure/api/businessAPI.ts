@@ -21,6 +21,7 @@
 import mainAxiosClient from "./mainAxiosClient";
 import type {
   Business, BusinessStatus, BusinessRegistrationCommand, UpdateBusinessCommand, BusinessFilter,
+  BusinessConfig, UpdateBusinessConfigCommand,
   CatalogMember, UserStatus, MemberRegistrationCommand, UpdateMemberCommand, MemberFilter,
 } from "@/infrastructure/dto/BusinessDTO";
 import type { MainApiWrapper, MainPaginatedList } from "@/infrastructure/dto/MainApiWrapper";
@@ -28,6 +29,7 @@ import type { MainApiWrapper, MainPaginatedList } from "@/infrastructure/dto/Mai
 // Re-export DTOs để các component vẫn import được từ đây (backward compatible)
 export type {
   Business, BusinessStatus, BusinessRegistrationCommand, UpdateBusinessCommand, BusinessFilter,
+  BusinessConfig, UpdateBusinessConfigCommand,
   CatalogMember, UserStatus, MemberRegistrationCommand, UpdateMemberCommand, MemberFilter,
 } from "@/infrastructure/dto/BusinessDTO";
 
@@ -79,6 +81,31 @@ export const businessAPI = {
     const { data } = await mainAxiosClient.put<MainApiWrapper<Business>>(
       "/businesses/profile",
       body
+    );
+    return data;
+  },
+
+  /** GET /api/v1/businesses/config — BO lấy cấu hình chatbot */
+  getConfig: async (): Promise<MainApiWrapper<BusinessConfig>> => {
+    const { data } = await mainAxiosClient.get<MainApiWrapper<BusinessConfig>>(
+      "/businesses/config"
+    );
+    return data;
+  },
+
+  /** PUT /api/v1/businesses/config — BO cập nhật cấu hình chatbot */
+  updateConfig: async (body: UpdateBusinessConfigCommand): Promise<MainApiWrapper<any>> => {
+    const { data } = await mainAxiosClient.put<MainApiWrapper<any>>(
+      "/businesses/config",
+      body
+    );
+    return data;
+  },
+
+  /** PUT /api/v1/businesses/config/default — BO khôi phục cấu hình chatbot mặc định */
+  resetConfigDefault: async (): Promise<MainApiWrapper<any>> => {
+    const { data } = await mainAxiosClient.put<MainApiWrapper<any>>(
+      "/businesses/config/default"
     );
     return data;
   },

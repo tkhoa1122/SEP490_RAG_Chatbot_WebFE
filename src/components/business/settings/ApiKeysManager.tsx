@@ -69,11 +69,28 @@ export function ApiKeysManager() {
     }
     try {
       setCreating(true);
-      const res = await apiKeyAPI.create({ name: newKeyName.trim() });
-      if (res.data) {
+      const res = await apiKeyAPI.create({ name: newKeyName.trim() }) as any;
+      
+      let finalKey = null;
+      if (typeof res === "string") {
+        finalKey = res;
+      } else if (res.data) {
+        if (typeof res.data === "string") {
+          finalKey = res.data;
+        } else {
+          finalKey = getFullKey(res.data);
+        }
+      } else if (res.fullKey || res.keyValue) {
+        finalKey = res.fullKey || res.keyValue;
+      }
+
+      if (finalKey) {
         toast.success("Tạo API Key thành công");
-        setNewlyCreatedKey(getFullKey(res.data));
+        setNewlyCreatedKey(finalKey);
         setNewKeyName("");
+        fetchKeys();
+      } else {
+        toast.success("Tạo API Key thành công (Không nhận được mã Key)");
         fetchKeys();
       }
     } catch (err: any) {
@@ -97,15 +114,27 @@ export function ApiKeysManager() {
     setFullKeyValue(null);
     setViewing(true);
     try {
-      const res = await apiKeyAPI.getById(keyId);
-      if (res.data) {
-        setFullKeyValue(getFullKey(res.data));
+      const res = await apiKeyAPI.getById(keyId) as any;
+      
+      let finalKey = null;
+      if (typeof res === "string") {
+        finalKey = res;
+      } else if (res.data) {
+        if (typeof res.data === "string") {
+          finalKey = res.data;
+        } else {
+          finalKey = getFullKey(res.data);
+        }
+      } else if (res.fullKey || res.keyValue) {
+        finalKey = res.fullKey || res.keyValue;
       }
+
+      setFullKeyValue(finalKey);
     } catch (err: any) {
       toast.error("Không thể lấy chi tiết API Key", {
         description: err.response?.data?.message || err.message,
       });
-      setViewKeyId(null); // đóng modal nếu lỗi
+      setViewKeyId(null);
     } finally {
       setViewing(false);
     }

@@ -1,26 +1,99 @@
-import type { Metadata } from "next";
-import { AlertCircle, Bot, Sparkles, SlidersHorizontal, MessageSquareText, Save, Loader2 } from "lucide-react";
+"use client";
+
+import { useState, useEffect } from "react";
+import { Sparkles, SlidersHorizontal, MessageSquareText, Save, Loader2, RotateCcw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-
-export const metadata: Metadata = { title: "Cấu hình AI" };
+import { toast } from "sonner";
+import { businessAPI } from "@/infrastructure/api/businessAPI";
+import type { BusinessConfig, UpdateBusinessConfigCommand } from "@/infrastructure/dto/BusinessDTO";
 
 export default function ChatbotConfigPage() {
+  const [config, setConfig] = useState<BusinessConfig>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+
+  useEffect(() => {
+    fetchConfig();
+  }, []);
+
+  const fetchConfig = async () => {
+    setIsLoading(true);
+    try {
+      const res = await businessAPI.getConfig();
+      setConfig(res.data || {});
+    } catch (error: any) {
+      toast.error("Không thể tải cấu hình Chatbot", { description: error.message });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const payload: UpdateBusinessConfigCommand = {
+        modelTemperature: config.modelTemperature,
+        topKDocument: config.topKDocument,
+        rerankingScore: config.rerankingScore,
+        systemPrompt: config.systemPrompt,
+        fallBackMessage: config.fallBackMessage,
+        maxOutPutToken: config.maxOutPutToken,
+      };
+      await businessAPI.updateConfig(payload);
+      toast.success("Đã lưu cấu hình Chatbot thành công!");
+      fetchConfig();
+    } catch (error: any) {
+      toast.error("Lỗi khi lưu cấu hình", { description: error.message });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleReset = async () => {
+    if (!window.confirm("Bạn có chắc chắn muốn khôi phục tất cả cấu hình về mặc định không?")) return;
+    setIsResetting(true);
+    try {
+      await businessAPI.resetConfigDefault();
+      toast.success("Đã khôi phục cấu hình mặc định!");
+      fetchConfig();
+    } catch (error: any) {
+      toast.error("Lỗi khi khôi phục cấu hình", { description: error.message });
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
+  const handleChange = (key: keyof BusinessConfig, value: string | number | null) => {
+    setConfig(prev => ({ ...prev, [key]: value }));
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <Loader2 className="h-8 w-8 text-primary animate-spin" />
+        <p className="text-muted-foreground">Đang tải cấu hình AI...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 pb-12">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Cấu hình Chatbot & AI</h1>
-        <p className="mt-1 text-muted-foreground">
-          Lựa chọn mô hình ngôn ngữ lớn (LLM) và thiết lập kịch bản (Prompt) cho Chatbot của bạn.
-        </p>
-      </div>
-
-      <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-lg p-3 text-sm flex items-center gap-2">
-        <AlertCircle className="h-5 w-5 shrink-0" />
-        <p><strong>Lưu ý:</strong> Đây chỉ là Demo, tính năng chưa được phát triển. Dữ liệu bên dưới là giả lập.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Cấu hình Chatbot & AI</h1>
+          <p className="mt-1 text-muted-foreground">
+            Lựa chọn độ sáng tạo (Temperature) và thiết lập kịch bản (Prompt) cho Chatbot của bạn.
+          </p>
+        </div>
+        <Button variant="outline" onClick={handleReset} disabled={isResetting || isSaving} className="shrink-0 gap-2">
+          {isResetting ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+          Khôi phục mặc định
+        </Button>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_2fr]">
@@ -33,29 +106,26 @@ export default function ChatbotConfigPage() {
                 Mô hình AI (LLM)
               </CardTitle>
               <CardDescription>
-                Lựa chọn AI Model và tinh chỉnh độ sáng tạo.
+                Tinh chỉnh độ sáng tạo và độ dài câu trả lời.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-3">
-                <Label htmlFor="model">Mô hình sử dụng</Label>
+                <Label htmlFor="model">Mô hình sử dụng (Model)</Label>
                 <select 
                   id="model" 
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  defaultValue="gpt-4o"
+                  className="w-full h-10 px-3 rounded-md border border-input bg-muted text-sm"
+                  disabled
                 >
-                  <option value="gpt-4o">OpenAI GPT-4o (Khuyên dùng)</option>
-                  <option value="gpt-4-turbo">OpenAI GPT-4 Turbo</option>
-                  <option value="gemini-1.5-pro">Google Gemini 1.5 Pro</option>
-                  <option value="claude-3-sonnet">Anthropic Claude 3.5 Sonnet</option>
+                  <option>Mặc định (GPT-4o / Mặc định hệ thống)</option>
                 </select>
-                <p className="text-xs text-muted-foreground">Các Model có mức giá (Cost) và tốc độ (Latency) khác nhau.</p>
+                <p className="text-xs text-muted-foreground">Hiện tại hệ thống sử dụng model mặc định (chưa mở tùy chọn custom).</p>
               </div>
 
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <Label htmlFor="temperature">Độ sáng tạo (Temperature)</Label>
-                  <span className="text-xs font-mono">0.2</span>
+                  <span className="text-xs font-mono">{config.modelTemperature ?? 0.2}</span>
                 </div>
                 <input 
                   type="range" 
@@ -63,12 +133,23 @@ export default function ChatbotConfigPage() {
                   min="0" 
                   max="1" 
                   step="0.1" 
-                  defaultValue="0.2"
+                  value={config.modelTemperature ?? 0.2}
+                  onChange={(e) => handleChange("modelTemperature", parseFloat(e.target.value))}
                   className="w-full accent-primary"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Mức thấp (0-0.3) giúp AI trả lời chính xác theo tài liệu. Mức cao (0.7-1) giúp AI sáng tạo hơn nhưng dễ ảo giác (Hallucination).
+                  Mức thấp (0-0.3) giúp AI trả lời chính xác. Mức cao (0.7-1) dễ sinh ra ảo giác.
                 </p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="maxTokens">Độ dài câu trả lời tối đa (Max Tokens)</Label>
+                <Input 
+                  id="maxTokens" 
+                  type="number" 
+                  value={config.maxOutPutToken ?? 1000} 
+                  onChange={(e) => handleChange("maxOutPutToken", parseInt(e.target.value) || 1000)}
+                />
               </div>
             </CardContent>
           </Card>
@@ -82,12 +163,23 @@ export default function ChatbotConfigPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="topK">Số lượng tài liệu trích xuất (Top K)</Label>
-                <Input id="topK" type="number" defaultValue={4} />
+                <Label htmlFor="topK">Số lượng tài liệu (Top K)</Label>
+                <Input 
+                  id="topK" 
+                  type="number" 
+                  value={config.topKDocument ?? 4} 
+                  onChange={(e) => handleChange("topKDocument", parseInt(e.target.value) || 4)}
+                />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="similarity">Độ tương đồng tối thiểu (Score)</Label>
-                <Input id="similarity" type="number" step="0.05" defaultValue={0.75} />
+                <Label htmlFor="similarity">Độ tương đồng (Reranking Score)</Label>
+                <Input 
+                  id="similarity" 
+                  type="number" 
+                  step="0.05" 
+                  value={config.rerankingScore ?? 0.75} 
+                  onChange={(e) => handleChange("rerankingScore", parseFloat(e.target.value) || 0.75)}
+                />
               </div>
             </CardContent>
           </Card>
@@ -115,21 +207,9 @@ export default function ChatbotConfigPage() {
                 <Textarea 
                   id="systemPrompt" 
                   className="min-h-[150px] font-mono text-sm leading-relaxed" 
-                  defaultValue={`Bạn là nhân viên tư vấn bán hàng tận tâm của cửa hàng Eco Fashion.
-Giọng điệu: Thân thiện, lịch sự, luôn dạ thưa.
-Quy tắc:
-1. LUÔN trả lời dựa trên thông tin sản phẩm và chính sách (Context) được cung cấp.
-2. NẾU không tìm thấy thông tin, TUYỆT ĐỐI không tự bịa ra (No hallucination), hãy xin lỗi khách và yêu cầu liên hệ hotline.
-3. Luôn gợi ý khách hàng chốt đơn sau khi cung cấp thông tin.`}
-                />
-              </div>
-
-              <div className="space-y-3">
-                <Label htmlFor="initialPrompt" className="text-base font-semibold">Câu chào mở đầu (Initial Message)</Label>
-                <Textarea 
-                  id="initialPrompt" 
-                  className="min-h-[80px]" 
-                  defaultValue="Dạ chào bạn! Mình là trợ lý AI của Eco Fashion. Bạn đang tìm kiếm sản phẩm nào hay cần mình tư vấn size ạ?"
+                  value={config.systemPrompt ?? ""}
+                  onChange={(e) => handleChange("systemPrompt", e.target.value)}
+                  placeholder="Nhập System Prompt của bạn..."
                 />
               </div>
 
@@ -141,14 +221,17 @@ Quy tắc:
                 <Textarea 
                   id="fallbackPrompt" 
                   className="min-h-[80px]" 
-                  defaultValue="Dạ rất xin lỗi bạn, hiện tại mình chưa có thông tin chính xác cho câu hỏi này. Bạn vui lòng liên hệ trực tiếp hotline 0901234567 để nhân viên hỗ trợ ngay nhé!"
+                  value={config.fallBackMessage ?? ""}
+                  onChange={(e) => handleChange("fallBackMessage", e.target.value)}
+                  placeholder="Nhập tin nhắn dự phòng..."
                 />
               </div>
 
             </CardContent>
-            <CardFooter className="border-t bg-muted/20 py-4 justify-end">
-              <Button disabled className="min-w-32 gap-2 shadow-sm">
-                <Save className="h-4 w-4" /> Lưu cấu hình
+            <CardFooter className="border-t bg-muted/20 py-4 flex justify-end gap-3">
+              <Button onClick={handleSave} disabled={isSaving || isResetting} className="min-w-32 gap-2 shadow-sm">
+                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Lưu cấu hình
               </Button>
             </CardFooter>
           </Card>

@@ -438,6 +438,80 @@
                 ]
             }
         },
+        "/api/v1/businesses/config": {
+            "get": {
+                "tags": [
+                    "Business"
+                ],
+                "summary": "BO gets business config",
+                "description": "Business owner gets the current business config",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Business"
+                ],
+                "summary": "BO updates business config",
+                "description": "Business owner updates the current business config",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateBusinessConfigCommand"
+                            }
+                        },
+                        "text/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateBusinessConfigCommand"
+                            }
+                        },
+                        "application/*+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateBusinessConfigCommand"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/businesses/config/default": {
+            "put": {
+                "tags": [
+                    "Business"
+                ],
+                "summary": "BO resets business config to default",
+                "description": "Business owner resets the current business config to default",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
         "/api/v1/businesses/{id}/verify": {
             "put": {
                 "tags": [
@@ -2377,6 +2451,40 @@
                     },
                     "addressLine": {
                         "type": "string",
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false
+            },
+            "UpdateBusinessConfigCommand": {
+                "type": "object",
+                "properties": {
+                    "modelTemperature": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    },
+                    "topKDocument": {
+                        "type": "integer",
+                        "format": "int32",
+                        "nullable": true
+                    },
+                    "rerankingScore": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    },
+                    "systemPrompt": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "fallBackMessage": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "maxOutPutToken": {
+                        "type": "integer",
+                        "format": "int32",
                         "nullable": true
                     }
                 },

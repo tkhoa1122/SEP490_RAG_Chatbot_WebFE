@@ -45,6 +45,24 @@ export interface BusinessFilter {
   PageSize?: number;
 }
 
+export interface BusinessConfig {
+  modelTemperature?: number | null;
+  topKDocument?: number | null;
+  rerankingScore?: number | null;
+  systemPrompt?: string | null;
+  fallBackMessage?: string | null;
+  maxOutPutToken?: number | null;
+}
+
+export interface UpdateBusinessConfigCommand {
+  modelTemperature?: number | null;
+  topKDocument?: number | null;
+  rerankingScore?: number | null;
+  systemPrompt?: string | null;
+  fallBackMessage?: string | null;
+  maxOutPutToken?: number | null;
+}
+
 // ── Catalog Team ───────────────────────────────────────────────────────────────
 
 export type UserStatus = "ACTIVE" | "DELETED" | "PENDING_PROFILE_COMPLETION" | "PENDING_APPROVAL" | "REJECTED";
