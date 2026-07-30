@@ -1,10 +1,15 @@
 import mainAxiosClient from "./mainAxiosClient";
-import type { MainApiWrapper } from "@/infrastructure/dto/MainApiWrapper";
+import type { MainApiWrapper, MainPaginatedList } from "@/infrastructure/dto/MainApiWrapper";
+import type { DocumentDto, DocumentFilter } from "@/infrastructure/dto/DocumentDTO";
+
+export type { DocumentDto, DocumentFilter, DocumentStatus } from "@/infrastructure/dto/DocumentDTO";
 
 /**
  * 📄 Document API — Quản lý tải lên tài liệu cho RAG
  * 
- * POST /api/v1/documents/upload — Tải lên nhiều tài liệu (multipart/form-data)
+ * POST   /api/v1/documents/upload — Tải lên nhiều tài liệu (multipart/form-data)
+ * GET    /api/v1/documents        — Lấy danh sách tài liệu
+ * DELETE /api/v1/documents/{id}   — Xóa tài liệu
  */
 export const documentAPI = {
   /** 
@@ -29,4 +34,21 @@ export const documentAPI = {
     
     return data;
   },
+
+  /** Lấy danh sách tài liệu */
+  getAll: async (filter?: DocumentFilter): Promise<MainApiWrapper<MainPaginatedList<DocumentDto>>> => {
+    const { data } = await mainAxiosClient.get<MainApiWrapper<MainPaginatedList<DocumentDto>>>(
+      "/documents",
+      { params: filter }
+    );
+    return data;
+  },
+
+  /** Xóa tài liệu */
+  delete: async (id: string): Promise<MainApiWrapper<any>> => {
+    const { data } = await mainAxiosClient.delete<MainApiWrapper<any>>(
+      `/documents/${id}`
+    );
+    return data;
+  }
 };

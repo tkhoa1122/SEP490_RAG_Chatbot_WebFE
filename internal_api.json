@@ -771,6 +771,7 @@
                 "tags": [
                     "Document"
                 ],
+                "description": "Upload documents to the system",
                 "requestBody": {
                     "content": {
                         "multipart/form-data": {
@@ -794,6 +795,84 @@
                         }
                     }
                 },
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/documents": {
+            "get": {
+                "tags": [
+                    "Document"
+                ],
+                "description": "Get all documents with optional filters",
+                "parameters": [
+                    {
+                        "name": "FileName",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "Status",
+                        "in": "query",
+                        "schema": {
+                            "$ref": "#/components/schemas/KnowledgeDocumentStatus"
+                        }
+                    },
+                    {
+                        "name": "PageIndex",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "PageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/documents/{documentId}": {
+            "delete": {
+                "tags": [
+                    "Document"
+                ],
+                "description": "Delete a document by its ID",
+                "parameters": [
+                    {
+                        "name": "documentId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK"
@@ -2076,6 +2155,16 @@
                     }
                 },
                 "additionalProperties": false
+            },
+            "KnowledgeDocumentStatus": {
+                "enum": [
+                    "Uploaded",
+                    "Processing",
+                    "Embedded",
+                    "Failed",
+                    "Deleted"
+                ],
+                "type": "string"
             },
             "LoginCommand": {
                 "required": [
