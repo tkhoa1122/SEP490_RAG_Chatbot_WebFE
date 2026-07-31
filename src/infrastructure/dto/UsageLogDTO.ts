@@ -6,10 +6,13 @@ export type UsageLogSourceType = "Chat" | "EmbeddingProduct" | "EmbeddingDocumen
 
 export interface UsageLog {
   id: string;
+  businessQuotaId: string;
+  sourceId: string;
   sourceType: UsageLogSourceType;
-  usedTokens: number;
-  usedMessages: number;
-  description: string;
+  inputTokens: number;
+  outputTokens: number;
+  billableTokens: number;
+  messageUsed: number;
   createdAt: string;
 }
 

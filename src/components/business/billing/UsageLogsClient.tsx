@@ -5,9 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { businessAPI } from "@/infrastructure/api/businessAPI";
-import type { UsageLog, UsageLogSourceType } from "@/infrastructure/dto/UsageLogDTO";
+import type { UsageLog } from "@/infrastructure/dto/UsageLogDTO";
 import { toast } from "sonner";
-import { Loader2, MessageSquare, Database, Zap, Clock } from "lucide-react";
+import { Loader2, MessageSquare, Database, Zap, Clock, ArrowDownRight, ArrowUpRight } from "lucide-react";
 
 export function UsageLogsClient() {
   const [logs, setLogs] = useState<UsageLog[]>([]);
@@ -55,30 +55,31 @@ export function UsageLogsClient() {
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/30">
-              <TableHead className="pl-6 font-semibold w-[200px]">Thời gian</TableHead>
+              <TableHead className="pl-6 font-semibold w-[180px]">Thời gian</TableHead>
               <TableHead className="font-semibold">Phân loại</TableHead>
-              <TableHead className="font-semibold">Nội dung</TableHead>
-              <TableHead className="font-semibold text-right">Tokens đã dùng</TableHead>
-              <TableHead className="font-semibold text-right pr-6">Tin nhắn đã dùng</TableHead>
+              <TableHead className="font-semibold text-right">Input Tokens</TableHead>
+              <TableHead className="font-semibold text-right">Output Tokens</TableHead>
+              <TableHead className="font-semibold text-right">Tổng Token tính phí</TableHead>
+              <TableHead className="font-semibold text-right pr-6">Tin nhắn</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
+                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
                   <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
                   Đang tải dữ liệu...
                 </TableCell>
               </TableRow>
             ) : logs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
+                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
                   Chưa có dữ liệu tiêu hao.
                 </TableCell>
               </TableRow>
             ) : (
               logs.map((log) => (
-                <TableRow key={log.id} className="group">
+                <TableRow key={log.id} className="group hover:bg-muted/20">
                   <TableCell className="pl-6 text-muted-foreground text-sm">
                     <div className="flex items-center gap-1.5">
                       <Clock className="h-3.5 w-3.5" />
@@ -86,12 +87,23 @@ export function UsageLogsClient() {
                     </div>
                   </TableCell>
                   <TableCell>{renderSourceType(log.sourceType)}</TableCell>
-                  <TableCell className="max-w-[300px] truncate" title={log.description}>{log.description}</TableCell>
-                  <TableCell className="text-right font-medium text-amber-600">
-                    {log.usedTokens > 0 ? `-${log.usedTokens.toLocaleString()}` : "-"}
+                  <TableCell className="text-right text-sm">
+                    <div className="flex items-center justify-end gap-1 text-orange-600">
+                      <ArrowDownRight className="h-3.5 w-3.5" />
+                      {log.inputTokens.toLocaleString()}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right text-sm">
+                    <div className="flex items-center justify-end gap-1 text-sky-600">
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                      {log.outputTokens.toLocaleString()}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right font-semibold text-amber-600">
+                    {log.billableTokens.toLocaleString()}
                   </TableCell>
                   <TableCell className="text-right pr-6 font-medium text-blue-600">
-                    {log.usedMessages > 0 ? `-${log.usedMessages.toLocaleString()}` : "-"}
+                    {log.messageUsed > 0 ? log.messageUsed : "-"}
                   </TableCell>
                 </TableRow>
               ))
