@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Bell, LogOut, User, ChevronDown, Menu, Store } from "lucide-react";
+import { LogOut, ChevronDown, Menu, Store } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -13,6 +13,7 @@ import {
 import { useRouter } from "next/navigation";
 import { mainAuthAPI } from "@/infrastructure/api/mainAuthAPI";
 import { useEffect, useState } from "react";
+import { GlobalSearch } from "@/components/dashboard/GlobalSearch";
 import { getRoleFromCookie } from "@/infrastructure/api/mainAuthAPI";
 import { businessAPI } from "@/infrastructure/api/businessAPI";
 
@@ -54,18 +55,7 @@ export function BusinessHeader() {
           <Menu className="h-5 w-5" />
         </button>
 
-        <div className="relative hidden sm:block">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Tìm kiếm sản phẩm, đơn hàng..."
-            className={cn(
-              "h-9 w-70 rounded-lg border border-border bg-muted/40 pl-9 pr-4 text-sm text-foreground",
-              "outline-none transition-all placeholder:text-muted-foreground/60",
-              "focus:w-90 focus:border-ring focus:bg-background focus:ring-2 focus:ring-ring/20"
-            )}
-          />
-        </div>
+        <GlobalSearch />
       </div>
 
       {/* Right: Notifications + Profile */}

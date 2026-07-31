@@ -27,20 +27,17 @@ export function ProductDataTable({ tenantId, onEdit, refreshTrigger }: ProductDa
   const fetchProducts = async () => {
     try {
       setLoading(true);
+      const params: Record<string, any> = { PageIndex: page, PageSize: pageSize };
       if (searchQuery.trim() !== "") {
-        const res = await productAPI.searchProducts(searchQuery, tenantId);
-        if (res.data) {
-          setProducts(res.data.products || []);
-          setTotalPages(Math.ceil((res.data.total || 0) / pageSize));
-        }
-      } else {
-        const res = await productAPI.getProducts(tenantId, page, pageSize) as any;
-        if (res) {
-          // Xử lý cả trường hợp response có bọc object { data: { items: [] } } hoặc trả thẳng { items: [] }
-          const responseData = res.data?.items ? res.data : (res.items ? res : res.data);
-          setProducts(responseData?.items || responseData?.data || (Array.isArray(responseData) ? responseData : []));
-          setTotalPages(responseData?.totalPages || res.totalPages || 1);
-        }
+        // Viết hoa chữ cái đầu để workaround backend case-sensitive search
+        const q = searchQuery.trim();
+        params.Name = q.charAt(0).toUpperCase() + q.slice(1);
+      }
+      const res = await productAPI.getProducts(tenantId, params) as any;
+      if (res) {
+        const responseData = res.data?.items ? res.data : (res.items ? res : res.data);
+        setProducts(responseData?.items || responseData?.data || (Array.isArray(responseData) ? responseData : []));
+        setTotalPages(responseData?.totalPages || res.totalPages || 1);
       }
     } catch (error) {
       console.error("Failed to fetch products:", error);
@@ -51,7 +48,10 @@ export function ProductDataTable({ tenantId, onEdit, refreshTrigger }: ProductDa
   };
 
   useEffect(() => {
-    fetchProducts();
+    const debounce = setTimeout(() => {
+      fetchProducts();
+    }, searchQuery ? 400 : 0);
+    return () => clearTimeout(debounce);
   }, [tenantId, page, searchQuery, refreshTrigger]);
 
   const handleDelete = async (id: string) => {

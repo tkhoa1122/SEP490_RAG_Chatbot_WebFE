@@ -30,12 +30,13 @@ export const productAPI = {
   },
 
   /**
-   * Lấy danh sách sản phẩm (phân trang)
+   * Lấy danh sách sản phẩm (phân trang + filter)
    * GET /api/v1/products (Internal API)
+   * Hỗ trợ: Name, MinPrice, MaxPrice, MinStockQuantity, MaxStockQuantity, Category, PageIndex, PageSize
    */
-  getProducts: async (tenantId: string, page = 1, pageSize = 20): Promise<PaginatedResponse<ProductDTO>> => {
+  getProducts: async (tenantId: string, params: Record<string, any> = {}): Promise<PaginatedResponse<ProductDTO>> => {
     const { data } = await mainAxiosClient.get<PaginatedResponse<ProductDTO>>("/products", {
-      params: { PageIndex: page, PageSize: pageSize },
+      params: { PageIndex: 1, PageSize: 20, ...params },
     });
     return data;
   },
