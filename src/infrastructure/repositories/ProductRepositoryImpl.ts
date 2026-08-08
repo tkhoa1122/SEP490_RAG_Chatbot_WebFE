@@ -9,7 +9,10 @@ import { ProductMapper } from "@/infrastructure/mappers/ProductMapper";
 
 class ProductRepositoryImpl implements ProductRepository {
   async getProducts(tenantId: string, page?: number, pageSize?: number): Promise<PaginatedResponse<Product>> {
-    const res = await productAPI.getProducts(tenantId, page, pageSize);
+    const params: Record<string, any> = {};
+    if (page !== undefined) params.PageIndex = page;
+    if (pageSize !== undefined) params.PageSize = pageSize;
+    const res = await productAPI.getProducts(tenantId, params);
     return {
       ...res,
       data: res.data ? ProductMapper.toEntityList(res.data) : [],
