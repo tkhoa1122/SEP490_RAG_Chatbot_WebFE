@@ -78,7 +78,7 @@ export function BusinessOverviewDashboard({ tenantId }: { tenantId: string }) {
     async function fetchStats() {
       setLoading(true);
       try {
-        const res = await productAPI.getProducts(tenantId, 1, 1) as any;
+        const res = await productAPI.getProducts(tenantId, { PageIndex: 1, PageSize: 1 }) as any;
         const responseData = res.data?.items ? res.data : (res.items ? res : res.data);
         const total = responseData?.totalItems || responseData?.totalCount || responseData?.total || 0;
         
