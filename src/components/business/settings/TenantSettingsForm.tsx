@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Building2, Save, Loader2, Phone, Globe, MapPin, AtSign, Building } from "lucide-react";
+import {
+  Building2, Save, Loader2, Phone, Globe, MapPin, AtSign,
+  Building, User, Lock, Eye, EyeOff, KeyRound, ShieldCheck
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,19 +14,46 @@ import { businessAPI, type UpdateBusinessCommand } from "@/infrastructure/api/bu
 import { mainAuthAPI } from "@/infrastructure/api/mainAuthAPI";
 import { cn } from "@/lib/utils";
 
+// ── Form Types ────────────────────────────────────────────────────────────────
+
+interface PersonalProfileForm {
+  fullName: string;
+  phoneNumber?: string;
+}
+
+interface ChangePasswordForm {
+  currentPassword: string;
+  newPassword: string;
+  confirmNewPassword: string;
+}
+
+// ── Main Component ────────────────────────────────────────────────────────────
+
 export function TenantSettingsForm() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingPersonal, setSavingPersonal] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [ownerInfo, setOwnerInfo] = useState<{ email: string; name: string } | null>(null);
 
-  const { register, handleSubmit, reset, formState: { errors, isDirty } } = useForm<UpdateBusinessCommand>({
-    defaultValues: {
-      businessName: "",
-      hotLine: "",
-      websiteUrl: "",
-      addressLine: "",
-    },
-  });
+  // Business form
+  const { register: regBiz, handleSubmit: handleBiz, reset: resetBiz, formState: { errors: errBiz, isDirty: isDirtyBiz } } =
+    useForm<UpdateBusinessCommand>({
+      defaultValues: { businessName: "", hotLine: "", websiteUrl: "", addressLine: "" },
+    });
+
+  // Personal profile form
+  const { register: regPersonal, handleSubmit: handlePersonal, reset: resetPersonal, formState: { errors: errPersonal, isDirty: isDirtyPersonal } } =
+    useForm<PersonalProfileForm>({ defaultValues: { fullName: "", phoneNumber: "" } });
+
+  // Change password form
+  const { register: regPw, handleSubmit: handlePw, reset: resetPw, formState: { errors: errPw }, watch } =
+    useForm<ChangePasswordForm>({ defaultValues: { currentPassword: "", newPassword: "", confirmNewPassword: "" } });
+
+  const newPassword = watch("newPassword");
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -32,9 +62,9 @@ export function TenantSettingsForm() {
           businessAPI.getProfile(),
           mainAuthAPI.getMe()
         ]);
-        
+
         if (profileRes.data) {
-          reset({
+          resetBiz({
             businessName: profileRes.data.businessName || "",
             hotLine: profileRes.data.hotLine || "",
             websiteUrl: profileRes.data.websiteUrl || "",
@@ -43,9 +73,10 @@ export function TenantSettingsForm() {
         }
 
         if (meRes.data) {
-          setOwnerInfo({
-            email: meRes.data.email || "",
-            name: meRes.data.fullName || "",
+          setOwnerInfo({ email: meRes.data.email || "", name: meRes.data.fullName || "" });
+          resetPersonal({
+            fullName: meRes.data.fullName || "",
+            phoneNumber: (meRes.data as any).phoneNumber || "",
           });
         }
       } catch (err) {
@@ -55,23 +86,51 @@ export function TenantSettingsForm() {
       }
     };
     fetchProfile();
-  }, [reset]);
+  }, [resetBiz, resetPersonal]);
 
-  const onSubmit = async (data: UpdateBusinessCommand) => {
+  // ── Submit Handlers ──────────────────────────────────────────────────────────
+
+  const onSubmitBiz = async (data: UpdateBusinessCommand) => {
     setSaving(true);
     try {
       await businessAPI.updateProfile(data);
-      toast.success("Cập nhật thông tin thành công");
-      // Reset isDirty state by re-setting current values
-      reset(data);
+      toast.success("Cập nhật thông tin doanh nghiệp thành công");
+      resetBiz(data);
     } catch (err: any) {
-      toast.error("Cập nhật thất bại", {
-        description: err.response?.data?.message || err.message,
-      });
+      toast.error("Cập nhật thất bại", { description: err.response?.data?.message || err.message });
     } finally {
       setSaving(false);
     }
   };
+
+  const onSubmitPersonal = async (data: PersonalProfileForm) => {
+    setSavingPersonal(true);
+    try {
+      await mainAuthAPI.updateProfile(data);
+      toast.success("Cập nhật thông tin cá nhân thành công");
+      setOwnerInfo(prev => ({ ...prev!, name: data.fullName }));
+      resetPersonal(data);
+    } catch (err: any) {
+      toast.error("Cập nhật thất bại", { description: err.response?.data?.message || err.message });
+    } finally {
+      setSavingPersonal(false);
+    }
+  };
+
+  const onSubmitPassword = async (data: ChangePasswordForm) => {
+    setSavingPassword(true);
+    try {
+      await mainAuthAPI.changePassword(data);
+      toast.success("Đổi mật khẩu thành công! Vui lòng đăng nhập lại.");
+      resetPw();
+    } catch (err: any) {
+      toast.error("Đổi mật khẩu thất bại", { description: err.response?.data?.message || err.message });
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
+  // ── Field Helper ──────────────────────────────────────────────────────────────
 
   const field = (
     label: string,
@@ -91,34 +150,39 @@ export function TenantSettingsForm() {
           <Input
             id={id}
             placeholder={placeholder}
-            className={cn("pl-9 bg-background", errors[id] && "border-red-500 focus-visible:ring-red-500")}
-            {...register(id, { required: required ? "Trường này là bắt buộc" : false })}
+            className={cn("pl-9 bg-background", errBiz[id] && "border-red-500 focus-visible:ring-red-500")}
+            {...regBiz(id, { required: required ? "Trường này là bắt buộc" : false })}
           />
         </div>
-        {errors[id] && <p className="text-xs text-red-500">{errors[id]?.message}</p>}
+        {errBiz[id] && <p className="text-xs text-red-500">{errBiz[id]?.message}</p>}
       </div>
     );
   };
 
-  return (
-    <Card className="border-border shadow-sm overflow-hidden bg-gradient-to-b from-card to-card/50">
-      <CardHeader className="border-b bg-muted/20 pb-5">
-        <CardTitle className="flex items-center gap-2 text-xl">
-          <Building2 className="h-5 w-5 text-primary" />
-          Hồ sơ doanh nghiệp
-        </CardTitle>
-        <CardDescription className="text-sm">
-          Cập nhật thông tin hiển thị của cửa hàng trên widget chatbot. Các trường có dấu <span className="text-red-500">*</span> là bắt buộc.
-        </CardDescription>
-      </CardHeader>
+  if (loading) {
+    return (
+      <div className="flex h-60 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary/60" />
+      </div>
+    );
+  }
 
-      <CardContent className="pt-8 pb-8">
-        {loading ? (
-          <div className="flex h-40 items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary/60" />
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+  return (
+    <div className="space-y-8">
+
+      {/* ── Card 1: Hồ sơ doanh nghiệp ──────────────────────────────────── */}
+      <Card className="border-border shadow-sm overflow-hidden">
+        <CardHeader className="border-b bg-muted/20 pb-5">
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <Building2 className="h-5 w-5 text-primary" />
+            Hồ sơ doanh nghiệp
+          </CardTitle>
+          <CardDescription>
+            Cập nhật thông tin hiển thị của cửa hàng trên widget chatbot.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-8 pb-8">
+          <form onSubmit={handleBiz(onSubmitBiz)} className="space-y-8">
             <div className="grid gap-8 md:grid-cols-2">
               <div className="space-y-6">
                 {field("Tên doanh nghiệp / Cửa hàng", "businessName", Building, "VD: Eco Fashion", true)}
@@ -129,39 +193,179 @@ export function TenantSettingsForm() {
                 {field("Địa chỉ", "addressLine", MapPin, "VD: 123 Đường ABC, Quận 1, TP.HCM")}
               </div>
             </div>
-
-            {/* Read-only Owner Info */}
-            <div className="relative overflow-hidden rounded-xl border border-primary/10 bg-primary/5 p-6 mt-8">
-              <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                <Building2 className="h-24 w-24" />
-              </div>
-              <h4 className="text-sm font-semibold mb-4 text-foreground/80 flex items-center gap-2">
-                <AtSign className="h-4 w-4" /> Thông tin người đại diện (Chủ sở hữu)
-              </h4>
-              <div className="flex flex-col sm:flex-row gap-6 sm:gap-12 relative z-10">
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Tên hiển thị</p>
-                  <p className="text-sm font-medium text-foreground">{ownerInfo?.name || "—"}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Email liên hệ</p>
-                  <p className="text-sm font-medium text-foreground">{ownerInfo?.email || "—"}</p>
-                </div>
-              </div>
-              <p className="mt-4 text-[11px] text-muted-foreground/70 italic">
-                * Thông tin đại diện được tạo ban đầu và không thể tự thay đổi. Vui lòng liên hệ Admin nếu cần hỗ trợ.
-              </p>
-            </div>
-
             <div className="flex justify-end pt-4">
-              <Button type="submit" disabled={!isDirty || saving} className="gap-2 min-w-32 shadow-sm">
+              <Button type="submit" disabled={!isDirtyBiz || saving} className="gap-2 min-w-32 shadow-sm">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 {saving ? "Đang lưu..." : "Lưu thay đổi"}
               </Button>
             </div>
           </form>
-        )}
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      {/* ── Card 2: Thông tin cá nhân ─────────────────────────────────────── */}
+      <Card className="border-border shadow-sm overflow-hidden">
+        <CardHeader className="border-b bg-muted/20 pb-5">
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <User className="h-5 w-5 text-primary" />
+            Thông tin cá nhân
+          </CardTitle>
+          <CardDescription>
+            Cập nhật họ tên và số điện thoại cá nhân của bạn.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-8 pb-8">
+          <form onSubmit={handlePersonal(onSubmitPersonal)} className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Họ tên */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">
+                  Họ và tên <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    className={cn("pl-9 bg-background", errPersonal.fullName && "border-red-500")}
+                    placeholder="Nguyễn Văn A"
+                    {...regPersonal("fullName", { required: "Vui lòng nhập họ tên" })}
+                  />
+                </div>
+                {errPersonal.fullName && <p className="text-xs text-red-500">{errPersonal.fullName.message}</p>}
+              </div>
+
+              {/* Số điện thoại */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Số điện thoại</label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    className="pl-9 bg-background"
+                    placeholder="0901234567"
+                    {...regPersonal("phoneNumber")}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Email (read-only) */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Email</label>
+              <div className="relative">
+                <AtSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  className="pl-9 bg-background text-muted-foreground"
+                  value={ownerInfo?.email || ""}
+                  readOnly
+                  disabled
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground/70 italic">Email không thể thay đổi.</p>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <Button type="submit" disabled={!isDirtyPersonal || savingPersonal} className="gap-2 min-w-32 shadow-sm">
+                {savingPersonal ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {savingPersonal ? "Đang lưu..." : "Lưu thay đổi"}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* ── Card 3: Đổi mật khẩu ─────────────────────────────────────────── */}
+      <Card className="border-border shadow-sm overflow-hidden">
+        <CardHeader className="border-b bg-muted/20 pb-5">
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <Lock className="h-5 w-5 text-primary" />
+            Đổi mật khẩu
+          </CardTitle>
+          <CardDescription>
+            Bảo mật tài khoản bằng cách thay đổi mật khẩu định kỳ.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-8 pb-8">
+          <div className="flex justify-center">
+            <form onSubmit={handlePw(onSubmitPassword)} className="space-y-4 w-full max-w-md">
+              {/* Mật khẩu hiện tại */}
+              <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground">
+                Mật khẩu hiện tại <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type={showCurrentPw ? "text" : "password"}
+                  className={cn("pl-9 pr-10 bg-background", errPw.currentPassword && "border-red-500")}
+                  placeholder="Nhập mật khẩu hiện tại"
+                  {...regPw("currentPassword", { required: "Vui lòng nhập mật khẩu hiện tại" })}
+                />
+                <button type="button" onClick={() => setShowCurrentPw(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  {showCurrentPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {errPw.currentPassword && <p className="text-xs text-red-500">{errPw.currentPassword.message}</p>}
+            </div>
+
+            {/* Mật khẩu mới */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground">
+                Mật khẩu mới <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <ShieldCheck className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type={showNewPw ? "text" : "password"}
+                  className={cn("pl-9 pr-10 bg-background", errPw.newPassword && "border-red-500")}
+                  placeholder="Ít nhất 8 ký tự"
+                  {...regPw("newPassword", {
+                    required: "Vui lòng nhập mật khẩu mới",
+                    minLength: { value: 8, message: "Mật khẩu tối thiểu 8 ký tự" }
+                  })}
+                />
+                <button type="button" onClick={() => setShowNewPw(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  {showNewPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {errPw.newPassword && <p className="text-xs text-red-500">{errPw.newPassword.message}</p>}
+            </div>
+
+            {/* Xác nhận mật khẩu mới */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground">
+                Xác nhận mật khẩu mới <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <ShieldCheck className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type={showConfirmPw ? "text" : "password"}
+                  className={cn("pl-9 pr-10 bg-background", errPw.confirmNewPassword && "border-red-500")}
+                  placeholder="Nhập lại mật khẩu mới"
+                  {...regPw("confirmNewPassword", {
+                    required: "Vui lòng xác nhận mật khẩu",
+                    validate: v => v === newPassword || "Mật khẩu xác nhận không khớp"
+                  })}
+                />
+                <button type="button" onClick={() => setShowConfirmPw(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  {showConfirmPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {errPw.confirmNewPassword && <p className="text-xs text-red-500">{errPw.confirmNewPassword.message}</p>}
+            </div>
+
+            <div className="flex justify-end pt-4">
+              <Button type="submit" disabled={savingPassword} variant="destructive" className="gap-2 w-full shadow-sm">
+                {savingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+                {savingPassword ? "Đang đổi..." : "Xác nhận đổi mật khẩu"}
+              </Button>
+            </div>
+            </form>
+          </div>
+        </CardContent>
+      </Card>
+
+    </div>
   );
 }

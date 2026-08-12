@@ -95,6 +95,9 @@ export function BillingManager() {
   const [isSubscribing, setIsSubscribing] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState<string | null>(null);
   const [businessProfile, setBusinessProfile] = useState<BusinessProfileDto | null>(null);
+  const [detailPayment, setDetailPayment] = useState<Payment | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [loadingDetail, setLoadingDetail] = useState(false);
   
   const params = useParams();
   const tenantId = params?.tenant_id as string;
@@ -107,12 +110,14 @@ export function BillingManager() {
       setLoading(true);
       try {
         const [payRes, plansRes, profileRes] = await Promise.all([
-          paymentAPI.getUserPayments({ "Filter.PageSize": 50 }),
+          paymentAPI.getUserPayments({ "Filter.PageSize": 50, "Filter.CreateAtOrderBy": "desc" } as any),
           subscriptionAPI.getAll({ "Filter.PageSize": 50 }),
           businessAPI.getProfile().catch(() => null)
         ]);
         
         const payList = payRes.data?.items ?? [];
+        // Đảm bảo luôn sort giảm dần theo createdAt trên FE phòng trường hợp BE trả sai
+        payList.sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
         setPayments(payList);
         setPlans(plansRes.data?.items ?? []);
         if (profileRes?.data) setBusinessProfile(profileRes.data);
@@ -150,6 +155,22 @@ export function BillingManager() {
   }, []);
 
   const activePlanData = activePayment ? (activePayment as any).subscriptionPlan as Subscription : null;
+
+  // Xem chi tiết đơn thanh toán
+  const handleViewDetail = async (payment: Payment) => {
+    if (!payment.orderCode) return;
+    setDetailPayment(payment);
+    setIsDetailOpen(true);
+    setLoadingDetail(true);
+    try {
+      const res = await paymentAPI.getByOrderCode(payment.orderCode);
+      if (res.data) setDetailPayment(res.data);
+    } catch (err) {
+      // Fallback to local data
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
 
   // Hàm hủy đơn thanh toán đang xử lý (Pending)
   const handleCancelPayment = async (payment: Payment) => {
@@ -391,11 +412,21 @@ export function BillingManager() {
                     </TableRow>
                   ) : (
                     payments.map((payment) => {
-                      const planNameDisplay = payment.subscriptionName || (payment as any).planName || (payment as any).description || plans.find(p => p.price === payment.amount)?.name || "—";
+                      const planNameDisplay = payment.subscriptionName || (payment as any).subscriptionPlanName || (payment as any).subscriptionPlan?.name || (payment as any).planName || (payment as any).description || plans.find(p => p.price === payment.amount)?.name || (payment.amount === 0 ? "Gói Cơ Bản" : "—");
                       const isTargeting = isCancelling === (payment.id || String(payment.orderCode));
                       return (
                         <TableRow key={payment.id || payment.orderCode} className={payment.status === "Pending" ? "bg-amber-500/5 hover:bg-amber-500/10 transition-colors" : ""}>
-                          <TableCell className="pl-6 font-mono text-xs font-semibold">{payment.orderCode ?? "—"}</TableCell>
+                          <TableCell className="pl-6">
+                            {payment.orderCode ? (
+                              <button
+                                onClick={() => handleViewDetail(payment)}
+                                className="font-mono text-xs font-semibold text-primary hover:underline cursor-pointer"
+                                title="Xem chi tiết đơn hàng"
+                              >
+                                #{payment.orderCode}
+                              </button>
+                            ) : "—"}
+                          </TableCell>
                           <TableCell className="font-medium">{planNameDisplay}</TableCell>
                           <TableCell className="font-semibold text-primary">
                             {payment.amount != null ? `₫${payment.amount.toLocaleString("vi-VN")}` : "—"}
@@ -499,6 +530,50 @@ export function BillingManager() {
               </div>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Detail Modal */}
+      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-primary" />
+              Chi tiết đơn thanh toán
+            </DialogTitle>
+            <DialogDescription>
+              {detailPayment?.orderCode ? `Mã đơn: #${detailPayment.orderCode}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {loadingDetail ? (
+            <div className="flex h-40 items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : detailPayment ? (
+            <div className="space-y-4 pt-2">
+              <div className="rounded-xl border bg-muted/20 divide-y divide-border overflow-hidden">
+                {([
+                  ["Gói cước", detailPayment.subscriptionName || (detailPayment as any).subscriptionPlanName || (detailPayment as any).subscriptionPlan?.name || (detailPayment as any).planName || (detailPayment as any).description || plans.find(p => p.price === detailPayment.amount)?.name || (detailPayment.amount === 0 ? "Gói Cơ Bản" : "—")],
+                  ["Số tiền", detailPayment.amount != null ? `₫${detailPayment.amount.toLocaleString("vi-VN")}` : "—"],
+                  ["Trạng thái", detailPayment.status ? PAYMENT_STATUS_MAP[detailPayment.status]?.label : "—"],
+                  ["Ngày tạo", detailPayment.createdAt ? new Date(detailPayment.createdAt).toLocaleString("vi-VN") : "—"],
+                  ["Ngày cập nhật", (detailPayment as any).updatedAt ? new Date((detailPayment as any).updatedAt).toLocaleString("vi-VN") : "—"],
+                ] as [string, string][]).map(([label, value]) => (
+                  <div key={label} className="flex items-center justify-between px-4 py-3">
+                    <span className="text-sm text-muted-foreground">{label}</span>
+                    <span className="text-sm font-medium text-right">{value}</span>
+                  </div>
+                ))}
+              </div>
+              {detailPayment.status && (
+                <div className="flex justify-center">
+                  <Badge variant="outline" className={cn("px-4 py-1.5 text-sm", PAYMENT_STATUS_MAP[detailPayment.status]?.cls)}>
+                    {PAYMENT_STATUS_MAP[detailPayment.status]?.label}
+                  </Badge>
+                </div>
+              )}
+            </div>
+          ) : null}
         </DialogContent>
       </Dialog>
     </>

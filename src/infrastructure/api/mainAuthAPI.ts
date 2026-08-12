@@ -28,12 +28,12 @@ export function decodeJwtPayload(token: string): Record<string, unknown> {
   try {
     const base64Url = token.split(".")[1];
     const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
-    );
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    const jsonPayload = new TextDecoder("utf-8").decode(bytes);
     return JSON.parse(jsonPayload);
   } catch {
     return {};
@@ -158,6 +158,33 @@ export const mainAuthAPI = {
       return null;
     }
   },
+
+  /**
+   * Cập nhật thông tin cá nhân
+   * PUT /api/v1/auth/update-profile
+   */
+  updateProfile: async (body: { fullName: string; phoneNumber?: string }): Promise<MainApiWrapper<MeResponse>> => {
+    const { data } = await mainAxiosClient.put<MainApiWrapper<MeResponse>>("/auth/update-profile", body);
+    return data;
+  },
+
+  /**
+   * Đổi mật khẩu
+   * PUT /api/v1/auth/change-password
+   */
+  changePassword: async (body: { currentPassword: string; newPassword: string; confirmNewPassword: string }): Promise<MainApiWrapper<null>> => {
+    const { data } = await mainAxiosClient.put<MainApiWrapper<null>>("/auth/change-password", body);
+    return data;
+  },
+
+  /**
+   * Quên mật khẩu
+   * POST /api/v1/auth/forgot-password
+   */
+  forgotPassword: async (body: { email: string }): Promise<MainApiWrapper<null>> => {
+    const { data } = await mainAxiosClient.post<MainApiWrapper<null>>("/auth/forgot-password", body);
+    return data;
+  },
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -189,7 +216,7 @@ function saveMainToken(
 
   // Ghi tenant_id để middleware điều hướng BO/CT đúng workspace
   if (meta.tenantId) {
-    document.cookie = `tenant_id=${meta.tenantId}; ${cookieOptions}`;
+    document.cookie = `tenant_id=${encodeURIComponent(meta.tenantId)}; ${cookieOptions}`;
   }
 }
 
@@ -213,7 +240,7 @@ function clearMainToken(): void {
 export function getTenantIdFromCookie(): string {
   if (typeof window === "undefined") return "";
   const match = document.cookie.match(/tenant_id=([^;]+)/);
-  return match?.[1] ?? "";
+  return match?.[1] ? decodeURIComponent(match[1]) : "";
 }
 
 /**
@@ -234,7 +261,7 @@ export function resolvePostLoginUrl(role: string, tenantId?: string | null): str
       return "/admin";
     case UserRole.BUSINESS_OWNER:
     case UserRole.CATALOG_MARKETING:
-      return tenantId ? `/${tenantId}/business` : "/login?reason=NO_TENANT";
+      return tenantId ? `/${encodeURIComponent(tenantId)}/business` : "/login?reason=NO_TENANT";
     default:
       return "/login?reason=UNKNOWN_ROLE";
   }

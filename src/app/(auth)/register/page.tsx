@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Eye, EyeOff, Loader2, Store, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { businessAPI } from "@/infrastructure/api/businessAPI";
 
 // ─── Input Component (Light Theme) ──────────────────────────────────────────
 
@@ -74,10 +75,19 @@ export default function RegisterPage() {
 
     if (Object.keys(newErrors).length === 0) {
       setIsLoading(true);
-      // Simulate API call
-      await new Promise((res) => setTimeout(res, 2000));
-      setIsLoading(false);
-      setIsSuccess(true);
+      try {
+        await businessAPI.create({
+          businessName: form.businessName,
+          businessOwnerName: form.fullName,
+          businessOwnerEmail: form.email,
+        });
+        setIsSuccess(true);
+      } catch (err: any) {
+        const errorMsg = err.response?.data?.message || err.message || "Đăng ký thất bại, vui lòng thử lại sau.";
+        setErrors(prev => ({ ...prev, email: errorMsg }));
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 

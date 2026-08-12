@@ -91,20 +91,33 @@ export function QuotaManager() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [payRes, bizRes] = await Promise.all([
-        paymentAPI.getAll({
-          "Filter.Search": search || undefined,
-          "Filter.PaymentEnums": statusFilter !== "all" ? statusFilter : undefined,
-          "Filter.PageIndex": page,
-          "Filter.PageSize": PAGE_SIZE,
-        }),
-        businessAPI.getAll({ PageSize: 100 }),
-      ]);
-      setPayments(payRes.data?.items ?? []);
-      setTotalCount(payRes.data?.totalItems ?? payRes.data?.totalCount ?? 0);
-      setBusinesses(bizRes.data?.items ?? []);
+      // Gọi song song nhưng bắt lỗi riêng biệt để tránh lỗi 403 của payment làm sập cả page
+      const payPromise = paymentAPI.getAll({
+        "Filter.Search": search || undefined,
+        "Filter.PaymentEnums": statusFilter !== "all" ? statusFilter : undefined,
+        "Filter.PageIndex": page,
+        "Filter.PageSize": PAGE_SIZE,
+        "Filter.CreateAtOrderBy": "desc"
+      } as any).catch(err => {
+        console.warn("Could not fetch payments (403 or other error):", err);
+        return { data: { items: [], totalItems: 0, totalCount: 0 } };
+      });
+
+      const bizPromise = businessAPI.getAll({ "Filter.PageSize": 100 } as any).catch(err => {
+        console.warn("Could not fetch businesses:", err);
+        return { data: { items: [], totalItems: 0, totalCount: 0 } };
+      });
+
+      const [payRes, bizRes] = await Promise.all([payPromise, bizPromise]);
+      
+      const payList = payRes?.data?.items ?? [];
+      payList.sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      
+      setPayments(payList);
+      setTotalCount(payRes?.data?.totalItems ?? payRes?.data?.totalCount ?? 0);
+      setBusinesses(bizRes?.data?.items ?? []);
     } catch (err: any) {
-      toast.error("Không thể tải dữ liệu quota");
+      toast.error("Đã xảy ra lỗi khi tải dữ liệu");
     } finally {
       setLoading(false);
     }
