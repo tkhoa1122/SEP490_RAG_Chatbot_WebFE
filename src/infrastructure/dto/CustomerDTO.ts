@@ -8,9 +8,10 @@ export type SenderTypeEnum = "None" | "Customer" | "ChatBot";
 export interface Customer {
   id: string;
   customerExternalId: string;
+  name?: string | null;
   status: CustomerStatus;
   createdAt: string;
-  updatedAt?: string;
+  updatedAt?: string | null;
 }
 
 export interface CustomerFilter {
@@ -21,12 +22,13 @@ export interface CustomerFilter {
   PageSize?: number;
 }
 
+/** Conversation - note: API returns "createAt" not "createdAt" */
 export interface Conversation {
   id: string;
   title?: string;
-  customerExternalId: string;
-  startedAt: string;
-  endedAt?: string;
+  status: string;
+  lastMessageAt?: string;
+  createAt: string;    // ← đúng theo API response
 }
 
 export interface Message {
@@ -36,4 +38,40 @@ export interface Message {
   content: string;
   createdAt: string;
   isHelpful?: boolean | null;
+}
+
+/** Cursor-based pagination response (dùng cho 3 API Customer Insights) */
+export interface CursorPagedList<T> {
+  items: T[];
+  hasMore: boolean;
+  nextCursor: string | null;
+}
+
+/** Order Event — Sự kiện đặt hàng trong cuộc hội thoại */
+export interface OrderEvent {
+  id?: string;
+  orderId?: string;
+  orderCode?: string;
+  status?: string;
+  totalAmount?: number;
+  createdAt?: string;
+  [key: string]: any; // flexible vì BE chưa document schema
+}
+
+/** Product Comparison — Sự kiện so sánh sản phẩm */
+export interface ProductComparison {
+  id?: string;
+  products?: Array<{ id?: string; name?: string; price?: number }>;
+  createdAt?: string;
+  [key: string]: any;
+}
+
+/** Search Query Log — Lịch sử tìm kiếm sản phẩm */
+export interface SearchQueryLog {
+  id?: string;
+  query?: string;
+  resultCount?: number;
+  hasResults?: boolean;
+  createdAt?: string;
+  [key: string]: any;
 }

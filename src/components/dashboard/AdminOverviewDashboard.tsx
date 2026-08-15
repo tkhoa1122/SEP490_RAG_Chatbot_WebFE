@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { businessAPI } from "@/infrastructure/api/businessAPI";
-import { subscriptionAPI, paymentAPI } from "@/infrastructure/api/subscriptionAPI";
+import { dashboardAPI } from "@/infrastructure/api/dashboardAPI";
 import {
   Building2,
   CreditCard,
@@ -30,7 +29,7 @@ export function AdminOverviewDashboard() {
   const [stats, setStats] = useState({
     totalBusinesses: 0,
     totalSubscriptions: 0,
-    totalPayments: 0,
+    totalMessages: 0,
     totalRevenue: 0,
   });
 
@@ -42,78 +41,61 @@ export function AdminOverviewDashboard() {
       try {
         setLoading(true);
 
-        // Fetch counts from APIs
         const [
-          businessesRes,
-          activeBusRes,
-          pendingBusRes,
-          rejectedBusRes,
-          subsRes,
-          paymentsRes,
+          summaryRes,
+          revenueRes,
+          subscriptionsRes,
+          aiUsageRes
         ] = await Promise.all([
-          businessAPI.getAll({ PageSize: 1 }),
-          businessAPI.getAll({ PageSize: 1, Status: "ACTIVE" }),
-          businessAPI.getAll({ PageSize: 1, Status: "PENDING_APPROVAL" }),
-          businessAPI.getAll({ PageSize: 1, Status: "REJECTED" }),
-          subscriptionAPI.getAll({ "Filter.PageSize": 1 }),
-          paymentAPI.getAll({ "Filter.PageSize": 100 }), // Fetch more to aggregate revenue
+          dashboardAPI.getSummary(),
+          dashboardAPI.getRevenue(),
+          dashboardAPI.getSubscriptions(),
+          dashboardAPI.getAiUsage().catch(err => {
+            console.warn("AI Usage error:", err);
+            return { data: { totalTokenUsed: 0, chartData: [] } } as any;
+          })
         ]);
 
-        const payments = paymentsRes.data?.items || [];
-        const totalRevenue = payments
-          .filter((p) => p.status === "Completed")
-          .reduce((sum, p) => sum + (p.amount || 0), 0);
-
+        const summaryData = summaryRes.data;
+        const revData = revenueRes.data?.items?.[0] || { totalRevenue: 0, totalRevenueThisMonth: 0, activeSubscriptionCount: 0 };
+        
         setStats({
-          totalBusinesses: businessesRes.data?.totalItems ?? businessesRes.data?.totalCount ?? 0,
-          totalSubscriptions: subsRes.data?.totalItems ?? subsRes.data?.totalCount ?? 0,
-          totalPayments: paymentsRes.data?.totalItems ?? paymentsRes.data?.totalCount ?? 0,
-          totalRevenue,
+          totalBusinesses: summaryData?.totalBusiness || 0,
+          totalSubscriptions: summaryData?.activeSubscriptionCount || 0,
+          totalMessages: summaryData?.totalMessage || 0,
+          totalRevenue: revData.totalRevenue || 0,
         });
 
         // Format data for Business Status Bar Chart
+        const totalBus = summaryData?.totalBusiness || 0;
+        const activeBus = summaryData?.activeBusiness || 0;
         setBusinessStatusData([
           {
             name: "Hoạt động",
-            count: activeBusRes.data?.totalItems ?? activeBusRes.data?.totalCount ?? 0,
+            count: activeBus,
             fill: "#10b981", // Emerald 500
           },
           {
-            name: "Chờ duyệt",
-            count: pendingBusRes.data?.totalItems ?? pendingBusRes.data?.totalCount ?? 0,
+            name: "Khác (Chờ/Từ chối)",
+            count: Math.max(0, totalBus - activeBus),
             fill: "#f59e0b", // Amber 500
-          },
-          {
-            name: "Từ chối",
-            count: rejectedBusRes.data?.totalItems ?? rejectedBusRes.data?.totalCount ?? 0,
-            fill: "#ef4444", // Red 500
-          },
+          }
         ]);
 
-        // Calculate Revenue History for the last 6 months
-        const monthlyRevenue = new Map<string, number>();
-        const now = new Date();
-        for (let i = 5; i >= 0; i--) {
-          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-          const key = `T${d.getMonth() + 1}/${d.getFullYear().toString().slice(2)}`;
-          monthlyRevenue.set(key, 0);
+        // Calculate Revenue History from AI Usage Chart as a placeholder, 
+        // since GET /revenue only gives total, not time series!
+        if (aiUsageRes.data?.chartData) {
+           const historyData = aiUsageRes.data.chartData.map((item: any) => {
+             const d = new Date(item.date);
+             return {
+               name: `${d.getDate()}/${d.getMonth()+1}`,
+               total: item.totalTokenUsed, // Map tokens instead of revenue for now since API lacks revenue time series
+             };
+           });
+           setRevenueHistoryData(historyData);
+        } else {
+           setRevenueHistoryData([]);
         }
-
-        payments
-          .filter((p) => p.status === "Completed" && p.createdAt)
-          .forEach((p) => {
-            const d = new Date(p.createdAt!);
-            const key = `T${d.getMonth() + 1}/${d.getFullYear().toString().slice(2)}`;
-            if (monthlyRevenue.has(key)) {
-              monthlyRevenue.set(key, monthlyRevenue.get(key)! + (p.amount || 0));
-            }
-          });
-
-        const historyData = Array.from(monthlyRevenue.entries()).map(([name, total]) => ({
-          name,
-          total,
-        }));
-        setRevenueHistoryData(historyData);
 
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
@@ -175,14 +157,12 @@ export function AdminOverviewDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Lượt giao dịch</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Tin nhắn AI</CardTitle>
+            <Package className="h-4 w-4 text-indigo-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalPayments}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Thanh toán được ghi nhận
-            </p>
+            <div className="text-2xl font-bold">{stats.totalMessages.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground mt-1">Đã được phản hồi</p>
           </CardContent>
         </Card>
 
@@ -210,7 +190,7 @@ export function AdminOverviewDashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-1 lg:col-span-4">
           <CardHeader>
-            <CardTitle>Tình hình Doanh thu (Mô phỏng 6 tháng)</CardTitle>
+            <CardTitle>Biểu đồ Tiêu thụ Token AI (Theo ngày)</CardTitle>
           </CardHeader>
           <CardContent className="pl-2">
             <div className="h-75 w-full">
@@ -234,13 +214,13 @@ export function AdminOverviewDashboard() {
                     axisLine={false}
                     tickLine={false}
                     tick={{ fill: '#6b7280', fontSize: 12 }}
-                    tickFormatter={(value) => `${value}k`}
+                    tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
                   />
                   <Tooltip
                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                     formatter={(value: any) => {
                       if (typeof value !== "number") return value;
-                      return [`${value.toLocaleString()}k ₫`, 'Doanh thu'];
+                      return [`${value.toLocaleString()} tokens`, 'Tiêu thụ'];
                     }}
                   />
                   <Area

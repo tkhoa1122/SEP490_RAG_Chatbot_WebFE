@@ -12,6 +12,7 @@ import {
   AlertCircle,
   ExternalLink,
   XCircle,
+  FileText,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -482,9 +483,9 @@ export function BillingManager() {
               Chọn gói cước phù hợp với nhu cầu của doanh nghiệp bạn.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-4">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-8 pt-2">
             {plans.map((plan) => (
-              <Card key={plan.id} className="flex flex-col border-primary/10 shadow-sm hover:shadow-md transition-shadow relative">
+              <Card key={plan.id} className="flex flex-col border-primary/10 shadow-sm hover:shadow-md transition-shadow relative overflow-visible mt-2">
                 {activePlanData?.id === plan.id && (
                   <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 px-3">Gói hiện tại</Badge>
                 )}
@@ -508,7 +509,11 @@ export function BillingManager() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Package className="h-4 w-4 text-emerald-500" />
-                      <span><b>{plan.maxProductAllowed.toLocaleString("vi-VN")}</b> Sản phẩm</span>
+                      <span><b>{plan.maxProductAllowed?.toLocaleString("vi-VN") || 0}</b> Sản phẩm</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-amber-500" />
+                      <span><b>{plan.maxDocumentAllowed?.toLocaleString("vi-VN") || 0}</b> Tài liệu</span>
                     </div>
                   </div>
                   <Button 

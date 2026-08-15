@@ -25,8 +25,7 @@ import {
   Area,
   Legend
 } from "recharts";
-import { getRoleFromCookie } from "@/infrastructure/api/mainAuthAPI";
-import { productAPI } from "@/infrastructure/api/productAPI";
+import { dashboardAPI, BusinessAnalyticsResponse } from "@/infrastructure/api/dashboardAPI";
 
 // Mock data until real API is integrated
 const MOCK_CHAT_DATA = [
@@ -65,31 +64,14 @@ const MOCK_ZERO_RESULT = [
 
 export function BusinessOverviewDashboard({ tenantId }: { tenantId: string }) {
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    totalProducts: 0,
-    totalDocuments: 0,
-    totalChats: 0,
-    hitRate: 0,
-    avgLatency: 0,
-    satisfaction: 0,
-  });
+  const [data, setData] = useState<BusinessAnalyticsResponse | null>(null);
 
   useEffect(() => {
     async function fetchStats() {
       setLoading(true);
       try {
-        const res = await productAPI.getProducts(tenantId, { PageIndex: 1, PageSize: 1 }) as any;
-        const responseData = res.data?.items ? res.data : (res.items ? res : res.data);
-        const total = responseData?.totalItems || responseData?.totalCount || responseData?.total || 0;
-        
-        setStats({
-          totalProducts: total,
-          totalDocuments: 56,
-          totalChats: 12845,
-          hitRate: 92.5,
-          avgLatency: 1.2,
-          satisfaction: 88,
-        });
+        const res = await dashboardAPI.getBusinessAnalytics();
+        setData(res.data as BusinessAnalyticsResponse);
       } catch (error) {
         console.error("Lỗi khi tải thống kê:", error);
       } finally {
@@ -111,6 +93,14 @@ export function BusinessOverviewDashboard({ tenantId }: { tenantId: string }) {
     );
   }
 
+  const chartData = data?.chatTraffic?.map(item => ({
+    name: new Date(item.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
+    count: item.sessions
+  })) || [];
+
+  const zeroResults = data?.zeroResultQueries?.slice(0, 5) || [];
+  const intents = data?.intents?.length ? data.intents : MOCK_INTENT_DATA;
+
   return (
     <div className="space-y-8 pb-10">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -129,7 +119,7 @@ export function BusinessOverviewDashboard({ tenantId }: { tenantId: string }) {
             <Box className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalProducts.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{data?.totalProducts?.toLocaleString() || 0}</div>
             <p className="text-xs text-muted-foreground mt-1">
               Đang có trong kho
             </p>
@@ -138,26 +128,26 @@ export function BusinessOverviewDashboard({ tenantId }: { tenantId: string }) {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-1">Tài liệu tri thức <span className="text-[10px] bg-amber-100 text-amber-700 px-1 rounded font-normal">Demo</span></CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-1">Tài liệu tri thức</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalDocuments.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{data?.totalKnowledgeDocuments?.toLocaleString() || 0}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Tính năng chưa được phát triển
+              File PDF/Word đã tải lên
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-1">Phiên Chat <span className="text-[10px] bg-amber-100 text-amber-700 px-1 rounded font-normal">Demo</span></CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-1">Phiên Chat</CardTitle>
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalChats.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{data?.totalChatSessions?.toLocaleString() || 0}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Tính năng chưa được phát triển
+              Khách hàng nhắn tin qua Widget
             </p>
           </CardContent>
         </Card>
@@ -165,26 +155,26 @@ export function BusinessOverviewDashboard({ tenantId }: { tenantId: string }) {
         {/* Row 2: RAG Quality Metrics */}
         <Card className="bg-emerald-50/50 border-emerald-100">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-emerald-800 flex items-center gap-1">Tỷ lệ chính xác (Hit Rate) <span className="text-[10px] bg-amber-100 text-amber-700 px-1 rounded font-normal">Demo</span></CardTitle>
+            <CardTitle className="text-sm font-medium text-emerald-800 flex items-center gap-1">Tỷ lệ chính xác (Hit Rate)</CardTitle>
             <Target className="h-4 w-4 text-emerald-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-700">{stats.hitRate}%</div>
+            <div className="text-2xl font-bold text-emerald-700">{data?.averageSearchHitRatePercentage || 0}%</div>
             <p className="text-xs text-emerald-600/80 mt-1">
-              Tính năng chưa được phát triển
+              Truy xuất đúng sản phẩm/tài liệu
             </p>
           </CardContent>
         </Card>
 
         <Card className="bg-blue-50/50 border-blue-100">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-blue-800 flex items-center gap-1">Tốc độ phản hồi (Latency) <span className="text-[10px] bg-amber-100 text-amber-700 px-1 rounded font-normal">Demo</span></CardTitle>
+            <CardTitle className="text-sm font-medium text-blue-800 flex items-center gap-1">Tốc độ phản hồi (Latency)</CardTitle>
             <Activity className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-700">{stats.avgLatency}s</div>
+            <div className="text-2xl font-bold text-blue-700">{data?.averageRetrievalLatencyMilliseconds ? (data.averageRetrievalLatencyMilliseconds / 1000).toFixed(2) : 0}s</div>
             <p className="text-xs text-blue-600/80 mt-1">
-              Tính năng chưa được phát triển
+              Trung bình thời gian bot chat lại
             </p>
           </CardContent>
         </Card>
@@ -195,9 +185,9 @@ export function BusinessOverviewDashboard({ tenantId }: { tenantId: string }) {
             <ThumbsUp className="h-4 w-4 text-amber-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-amber-700">{stats.satisfaction}%</div>
+            <div className="text-2xl font-bold text-amber-700">{data?.conversionRate !== undefined ? `${data.conversionRate}%` : "N/A"}</div>
             <p className="text-xs text-amber-600/80 mt-1">
-              Tính năng chưa được phát triển
+              Tỷ lệ chuyển đổi đơn hàng
             </p>
           </CardContent>
         </Card>
@@ -207,13 +197,13 @@ export function BusinessOverviewDashboard({ tenantId }: { tenantId: string }) {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-1 lg:col-span-4">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">Lưu lượng Chat (7 ngày qua) <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-normal">Demo</span></CardTitle>
-            <CardDescription>Biểu đồ giả lập - Tính năng chưa được phát triển</CardDescription>
+            <CardTitle className="flex items-center gap-2">Lưu lượng Chat (Trong kỳ)</CardTitle>
+            <CardDescription>Số lượng phiên chat theo thời gian thực</CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={MOCK_CHAT_DATA} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorChats" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
@@ -265,7 +255,7 @@ export function BusinessOverviewDashboard({ tenantId }: { tenantId: string }) {
               <CardTitle className="text-rose-900 flex items-center gap-2">Zero-result Queries <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-normal">Demo</span></CardTitle>
             </div>
             <CardDescription className="text-rose-700/80">
-              Dữ liệu giả lập - Tính năng chưa được phát triển
+              Dữ liệu chưa có (Đang thu thập)
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">

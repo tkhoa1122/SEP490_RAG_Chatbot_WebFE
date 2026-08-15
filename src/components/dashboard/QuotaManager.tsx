@@ -247,7 +247,25 @@ export function QuotaManager() {
                   </TableCell>
                 </TableRow>
               ) : (
-                payments.map((payment) => (
+                payments.map((payment) => {
+                  const anyPay = payment as any;
+                  // Thử lấy ID từ mọi field có thể
+                  const busId = payment.businessId || anyPay.tenantId || anyPay.business?.id || anyPay.bussiness?.id || anyPay.tenant?.id;
+                  const businessObj = busId ? businesses.find(b => b.id === busId) : undefined;
+                  
+                  // Thử lấy Tên từ mọi field có thể
+                  const busNameDisplay = businessObj?.businessName || 
+                    anyPay.businessName || 
+                    anyPay.business?.businessName || 
+                    anyPay.business?.name || 
+                    anyPay.bussiness?.businessName || 
+                    anyPay.bussiness?.name || 
+                    anyPay.tenantName || 
+                    (busId ? busId.slice(0, 8) + "..." : "—");
+                    
+                  const planNameDisplay = payment.subscriptionName || anyPay.subscriptionPlanName || anyPay.subscriptionPlan?.name || anyPay.planName || anyPay.description || (payment.amount === 0 ? "Gói Cơ Bản" : "—");
+
+                  return (
                   <Fragment key={payment.id}>
                     <TableRow key={payment.id}
                       className="group cursor-pointer hover:bg-muted/30"
@@ -258,15 +276,14 @@ export function QuotaManager() {
                             ? <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" />
                             : <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />}
                           <span className="text-sm font-medium">
-                            {businesses.find(b => b.id === payment.businessId)?.businessName
-                              ?? (payment.businessId ? payment.businessId.slice(0, 8) + "..." : "—")}
+                            {busNameDisplay}
                           </span>
                         </div>
                       </TableCell>
                       <TableCell>
                         <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{payment.orderCode ?? "—"}</code>
                       </TableCell>
-                      <TableCell className="text-sm">{payment.subscriptionName ?? "—"}</TableCell>
+                      <TableCell className="text-sm">{planNameDisplay}</TableCell>
                       <TableCell>
                         <span className="text-sm font-semibold">
                           {payment.amount != null ? `₫${payment.amount.toLocaleString("vi-VN")}` : "—"}
@@ -322,7 +339,7 @@ export function QuotaManager() {
                       </TableRow>
                     )}
                   </Fragment>
-                ))
+                )})
               )}
             </TableBody>
           </Table>

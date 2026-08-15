@@ -1,0 +1,64 @@
+Feature	Function	Role	Description
+User Management	Login	All Roles	Verify login functionality covering input validation, error notifications, and successful role-based navigation for System Admin, Business Owner, Catalog Staff and Buyer (to use chatbot).
+User Management	Logout	All Roles	Verify that logout successfully clears authentication tokens from cookies/localStorage and redirects the user to the login page across all roles.
+User Management	Register Account	Guest / Buyer	Verify the buyer registration flow covering all input validations (empty fields, invalid email format, weak password, mismatched password, duplicate email) and successful account creation (for chatbot access).
+User Management	Get Current User Profile	All Roles	Verify that authenticated users (System Admin, BO, CT) can retrieve accurate profile information (name, email, role, avatar) from the system after login.
+User Management	Send Activate Email	System User	Verify that an account activation email is automatically sent upon new account creation and the email contains a working activation link.
+User Management	Set Initial Password	All Roles	Verify that users can set an initial password via the activation link with proper rule enforcement (min length, complexity, confirmation match) and that the link expires after use.
+User Management	Update Personal & Business Profile	All Roles	Verify that authenticated users (System Admin, BO, CT) can update personal profile fields, and BO can update business profile details with validation.
+User Management	Send Password Reset Request	All Roles	Verify that submitting a registered email on the forgot-password page triggers a password reset email, and unregistered emails are handled gracefully without leaking user info.
+User Management	Set New Password	All Roles	Verify that users can set a new password via the reset link with validation rules, the old password is invalidated, and the reset link cannot be reused.
+System Administration	Create Business Account	System Admin	Verify that Admin can create a new business tenant account with required field validation and the new business is placed in pending-approval status.
+System Administration	Get All System Users	System Admin	Verify that Admin can retrieve a paginated, filterable list of all system users with correct data display including role and status.
+System Administration	Update User Account	System Admin	Verify that Admin can update system user information (role, status, contact details) with proper validation and audit confirmation.
+System Administration	Delete/Ban User Account	System Admin	Verify that Admin can delete or ban a user account, the action requires confirmation, and the affected user cannot log in afterwards.
+System Administration	Create Platform Policy	System Admin	Verify that Admin can create new platform policies (Terms of Service, Privacy Policy, Refund Policy) with content type selection, title and body validation, and draft/publish status.
+System Administration	Update Platform Policy	System Admin	Verify that Admin can update an existing platform policy's title, content, and status, with changes saved and reflected correctly.
+System Administration	Get All Platform Policies	System Admin	Verify that all platform policies are listed with filtering by content type and status, and pagination works correctly.
+System Administration	Get All Business Tenants	System Admin	Verify that Admin can retrieve all registered business tenants with filtering by name/status and pagination support.
+System Administration	Approve Business Tenant	System Admin	Verify that Admin can approve a pending business tenant account, granting them active access and triggering a notification email to the business.
+System Administration	Suspend Business Tenant	System Admin	Verify that Admin can suspend an active business tenant, blocking their access without permanently deleting data.
+System Administration	Create Subscription Plan	System Admin	Verify that Admin can create a new subscription plan with required fields (name, price, billing cycle, token quota, features) validated.
+System Administration	Update Subscription Plan	System Admin	Verify that Admin can modify an existing subscription plan's details and the changes take effect for new subscribers.
+System Administration	Delete Subscription Plan	System Admin	Verify that Admin can delete a plan with no active subscribers and is prevented from deleting plans that are in use.
+System Administration	Get Subscription Plans	System Admin	Verify that subscription plans are retrieved and displayed correctly for both Admin (management view) and Business Owner (selection view).
+System Administration	Get Platform Resource Report	System Admin	Verify that Admin can generate the resource utilization report with accurate metrics (API calls, storage, token usage) and date-range filtering.
+System Administration	Get Platform Revenue Report	System Admin	Verify that Admin can generate the platform revenue report showing payment totals, transaction counts, and trends across date ranges.
+Knowledge Base Management	Upload Knowledge Base Document	Business Owner / Catalog Staff	Verify that Business Owner/Catalog Staff can upload documents (PDF, DOCX, TXT) to the knowledge base and files are queued for indexing.
+Knowledge Base Management	Update Knowledge Base Document	Business Owner / Catalog Staff	Verify that an existing knowledge base document can be replaced or have its metadata updated, with re-indexing triggered automatically.
+Knowledge Base Management	Delete Knowledge Base Document	Business Owner / Catalog Staff	Verify that a knowledge base document can be permanently deleted and is removed from the RAG index.
+Knowledge Base Management	Get All Knowledge Base Documents	Business Owner / Catalog Staff	Verify that all uploaded knowledge base documents are listed with file name, status, upload date, and indexing status.
+Chatbot Configuration	Update AI Chatbot Prompt	Business Owner	Verify that Business Owner can update the chatbot system prompt with validation for empty content and character limits, and changes affect live chatbot behavior.
+Chatbot Configuration	Update Fallback Rules	Business Owner	Verify that Business Owner can configure the chatbot's fallback response rules for out-of-scope or unanswerable queries.
+Chatbot Configuration	Get Chatbot Configuration	Business Owner	Verify that the current chatbot configuration (system prompt, fallback rules, model settings) can be retrieved and displayed correctly.
+Chatbot Configuration	Reset Chatbot Config to Default	Business Owner	Verify that chatbot configuration can be reset to system defaults with a confirmation prompt, and the reset is reflected immediately.
+API Key Management	Create API Key	Business Owner	Verify that Business Owner can create a named API key and the full key value is displayed only once upon creation before being masked.
+API Key Management	Revoke API Key	Business Owner	Verify that an existing API key can be revoked with confirmation, and subsequent requests using the revoked key are rejected (401).
+API Key Management	Get All API Keys	Business Owner	Verify that all API keys for the current business tenant are listed with labels, creation dates, and masked key values.
+Subscription & Billing	Create Subscription Payment	Business Owner	Verify that Business Owner can initiate a subscription payment by selecting a plan and is redirected to the payment gateway URL.
+Subscription & Billing	Cancel Subscription Payment	Business Owner	Verify that a pending payment order can be cancelled before processing and the status is updated accordingly.
+Subscription & Billing	Get Billing History	Business Owner	Verify that Business Owner can view a complete paginated billing history with payment status, amount, plan name, and transaction date.
+Analytics & Reporting	Get Workspace Analytics	Business Owner	Verify that workspace analytics dashboard displays accurate metrics (total queries, active customers, avg response time) for the business.
+Analytics & Reporting	Get Chatbot Query Logs	Business Owner	Verify that chatbot query logs can be retrieved with filtering by date, customer ID, and keyword with correct display.
+Analytics & Reporting	Get Business Usages Logs / Quota	Business Owner	Verify that token consumption logs and remaining quota are displayed accurately with usage breakdown and warning thresholds.
+Team Management	Create Catalog Staff Account	Business Owner	Verify that Business Owner can create a Catalog Staff account by email and the staff receives an activation email to set password.
+Team Management	Delete Catalog Staff Account	Business Owner	Verify that Business Owner can delete a Catalog Staff account with confirmation and the staff immediately loses access.
+Team Management	Get Catalog Staff By ID	Business Owner / Catalog Staff	Verify that Business Owner can view the detailed profile of a Catalog Staff member by their ID.
+Product Catalog Management	Upload Catalog Spreadsheet	Catalog Staff	Verify that Catalog Staff can upload a product spreadsheet (XLSX/CSV), valid rows are imported as products, and rows with errors are reported back.
+Product Catalog Management	Get Import Jobs History	Catalog Staff	Verify that Catalog Staff can view the history of spreadsheet import jobs, including success and failure details.
+Product Catalog Management	Create Product Item	Catalog Staff	Verify that Catalog Staff can create a single product item with full field validation including name, price, and image.
+Product Catalog Management	Update Product Item	Catalog Staff	Verify that Catalog Staff can update product information (name, price, stock quantity, category, images, description) with full field validation.
+Product Catalog Management	Delete Product Item	Catalog Staff	Verify that Catalog Staff can permanently delete a product item from the catalog with a confirmation step.
+Product Catalog Management	Get Products with Conditions	Catalog Staff	Verify that the product list can be filtered by name, price range, category, and stock quantity, and results are accurate and paginated.
+Analytics & Reporting	Get Catalog Search Analytics	Business Owner	Verify that catalog search analytics (top search terms, zero-result queries, search frequency) are retrieved and displayed accurately.
+AI Chatbot Storefront	Submit Natural Language Query	Buyer / End-User	Verify that users can type natural language questions to the chatbot and receive relevant product/information responses backed by the knowledge base.
+AI Chatbot Storefront	Inquire Store Policies	Buyer / End-User	Verify that the chatbot accurately answers questions about store policies (return policy, shipping, warranty) by referencing the uploaded knowledge base.
+Product Catalog Management	Request Product Comparison	Catalog Staff	Verify that users can ask the chatbot to compare multiple products and receive a structured, side-by-side comparison response.
+AI Chatbot Storefront	Apply Search Filters	Buyer / End-User	Verify that users can apply search filters (price range, category, brand) in the chatbot interface to narrow down product results.
+AI Chatbot Storefront	Click Smart Tracking Link	Buyer / End-User	Verify that product smart-links in chatbot responses are clickable, navigate to correct product pages, and click events are recorded in analytics.
+AI Chatbot Storefront	Synthesize Conversational Answer	Buyer / End-User	Verify that the chatbot generates coherent, accurate, and contextual answers using RAG retrieval across single and multi-turn conversations.
+AI Chatbot Storefront	Create Response Rating	Buyer / End-User	Verify that users can submit a thumbs-up/thumbs-down rating for a specific chatbot response and the rating is persisted correctly.
+AI Chatbot Storefront	Create Feedback Comment	System User	Verify that users can write and submit a text feedback comment for a chatbot response with character limit validation.
+AI Chatbot Storefront	Get Chat History	Buyer / End-User	Verify that authenticated users can retrieve their full chat conversation history in correct chronological order with pagination.
+AI Chatbot Storefront	Delete/Clear Chat History	Buyer / End-User	Verify that users can delete/clear their entire chat history with a confirmation prompt and history is permanently removed.
+Subscription & Billing	Process Subscription Payment	Business Owner	Verify that the subscription payment webhook correctly processes successful payment, updates business subscription status, and unlocks plan features.

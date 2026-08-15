@@ -63,11 +63,7 @@ const NAV_ITEMS: NavItem[] = [
     icon: CreditCard,
     allowedRoles: ["BUSINESS_OWNER"],
   },
-  {
-    label: "Doanh thu",
-    href: (t) => `/${t}/business/analytics`,
-    icon: BarChart,
-  },
+
   {
     label: "Hiệu suất AI",
     href: (t) => `/${t}/business/performance`,

@@ -988,6 +988,365 @@
                 ]
             }
         },
+        "/api/v1/customers/{customerExternalId}/conversations/{conversationId}/order-events": {
+            "get": {
+                "tags": [
+                    "Customers"
+                ],
+                "summary": "BO,CT gets cursor-paged order events of a customer conversation",
+                "description": "Gets order events separately from message history to avoid repeating all order events on every message page.",
+                "parameters": [
+                    {
+                        "name": "customerExternalId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "conversationId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "LastCursor",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "Limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/customers/{customerExternalId}/conversations/{conversationId}/product-comparisons": {
+            "get": {
+                "tags": [
+                    "Customers"
+                ],
+                "summary": "BO,CT gets cursor-paged product comparisons of a customer conversation",
+                "description": "Gets product-comparison analytics separately from conversation messages.",
+                "parameters": [
+                    {
+                        "name": "customerExternalId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "conversationId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "LastCursor",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "Limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/customers/{customerExternalId}/conversations/{conversationId}/search-query-logs": {
+            "get": {
+                "tags": [
+                    "Customers"
+                ],
+                "summary": "BO,CT gets cursor-paged search query logs of a customer conversation",
+                "description": "Gets product-search analytics separately from conversation messages.",
+                "parameters": [
+                    {
+                        "name": "customerExternalId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "conversationId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "LastCursor",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "Limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/dashboards/subscriptions": {
+            "get": {
+                "tags": [
+                    "Dashboard"
+                ],
+                "description": "Get subscription dashboard data",
+                "parameters": [
+                    {
+                        "name": "Filter.Status",
+                        "in": "query",
+                        "schema": {
+                            "$ref": "#/components/schemas/StatusEnums"
+                        }
+                    },
+                    {
+                        "name": "Filter.PageIndex",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "Filter.PageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/dashboards/revenue": {
+            "get": {
+                "tags": [
+                    "Dashboard"
+                ],
+                "description": "Get revenue dashboard data",
+                "parameters": [
+                    {
+                        "name": "Filter.Month",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "Filter.PageIndex",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "Filter.PageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/dashboards/summary": {
+            "get": {
+                "tags": [
+                    "Dashboard"
+                ],
+                "description": "Get summary dashboard data",
+                "parameters": [
+                    {
+                        "name": "Filter.PageIndex",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "Filter.PageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/dashboards/ai-usage": {
+            "get": {
+                "tags": [
+                    "Dashboard"
+                ],
+                "description": "Get AI usage dashboard data",
+                "parameters": [
+                    {
+                        "name": "Filter.Range",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "Filter.PageIndex",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "Filter.PageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/dashboards/business": {
+            "get": {
+                "tags": [
+                    "Dashboard"
+                ],
+                "description": "Get business chatbot analytics dashboard data",
+                "parameters": [
+                    {
+                        "name": "From",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "To",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
         "/api/v1/documents/upload": {
             "post": {
                 "tags": [
