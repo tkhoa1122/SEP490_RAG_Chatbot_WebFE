@@ -64,11 +64,7 @@ const NAV_ITEMS: NavItem[] = [
     allowedRoles: ["BUSINESS_OWNER"],
   },
 
-  {
-    label: "Hiệu suất AI",
-    href: (t) => `/${t}/business/performance`,
-    icon: Activity,
-  },
+
   {
     label: "API Keys",
     href: (t) => `/${t}/business/api-keys`,

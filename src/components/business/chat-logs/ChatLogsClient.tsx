@@ -3,17 +3,159 @@
 import { useState, useEffect, use } from "react";
 import { 
   MessageSquare, User as UserIcon, Calendar, ArrowRight, Search, Loader2, Bot, User, Clock,
-  X, ShoppingBag, Scale, SearchIcon, Package
+  X, ShoppingBag, Scale, SearchIcon, Package, Database, Zap, Sparkles, ChevronDown, ChevronUp
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { customerAPI } from "@/infrastructure/api/customerAPI";
+import { productAPI } from "@/infrastructure/api/productAPI";
 import type { Customer, Conversation, Message, OrderEvent, ProductComparison, SearchQueryLog } from "@/infrastructure/dto/CustomerDTO";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
+
+// ─── Markdown components for table rendering ────────────────────────────────
+const markdownComponents = {
+  table: ({ children }: any) => (
+    <div className="overflow-x-auto my-2 rounded-lg border border-border">
+      <table className="w-full text-xs border-collapse">{children}</table>
+    </div>
+  ),
+  thead: ({ children }: any) => (
+    <thead className="bg-muted/60 text-foreground">{children}</thead>
+  ),
+  tbody: ({ children }: any) => (
+    <tbody className="divide-y divide-border">{children}</tbody>
+  ),
+  tr: ({ children }: any) => (
+    <tr className="hover:bg-muted/30 transition-colors">{children}</tr>
+  ),
+  th: ({ children }: any) => (
+    <th className="px-3 py-2 text-left font-semibold text-xs border-r last:border-r-0 border-border whitespace-nowrap">{children}</th>
+  ),
+  td: ({ children }: any) => (
+    <td className="px-3 py-2 text-xs border-r last:border-r-0 border-border">{children}</td>
+  ),
+  p: ({ children }: any) => <p className="mb-1 last:mb-0">{children}</p>,
+  strong: ({ children }: any) => <strong className="font-semibold">{children}</strong>,
+};
+
+// ─── Chat Bubble Renderer (shared across all tabs) ──────────────────────────
+function ChatBubble({ msg, searchLog }: { msg: Message, searchLog?: SearchQueryLog }) {
+  const isBot = msg.senderType === "ChatBot";
+  const [showInsights, setShowInsights] = useState(false);
+
+  return (
+    <div className={`flex flex-col gap-2 ${isBot ? "items-start" : "items-end"}`}>
+      <div className={`flex w-full ${isBot ? "justify-start" : "justify-end"}`}>
+        <div className={`flex max-w-[85%] gap-2 ${isBot ? "flex-row" : "flex-row-reverse"}`}>
+          <div className={`flex-shrink-0 h-7 w-7 rounded-full flex items-center justify-center text-xs ${isBot ? "bg-primary/10 text-primary" : "bg-muted"}`}>
+            {isBot ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
+          </div>
+          <div className={`flex flex-col ${isBot ? "items-start" : "items-end"}`}>
+            <div className={`rounded-2xl px-3.5 py-2 text-sm shadow-sm ${
+              isBot ? "bg-card border rounded-tl-sm" : "bg-primary text-primary-foreground rounded-tr-sm"
+            }`}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                {msg.content}
+              </ReactMarkdown>
+            </div>
+            <span className="text-[10px] text-muted-foreground mt-1 px-1">
+              {new Date(msg.createdAt).toLocaleTimeString("vi-VN", { timeStyle: "short" })}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* RAG Search Insights Card */}
+      {searchLog && (
+        <div className="ml-9 mt-1 w-full max-w-[85%] rounded-xl border bg-muted/30 shadow-sm overflow-hidden text-sm">
+          <button 
+            onClick={() => setShowInsights(!showInsights)}
+            className="w-full flex items-center justify-between px-4 py-2.5 bg-violet-50/50 hover:bg-violet-50 transition-colors border-b border-violet-100/50"
+          >
+            <div className="flex items-center gap-2 text-violet-700 font-medium text-xs">
+              <Database className="h-3.5 w-3.5" />
+              <span>Dữ liệu truy xuất RAG</span>
+              <Badge variant="outline" className="ml-2 text-[10px] bg-white border-violet-200 text-violet-600">
+                {searchLog.resultCount || 0} kết quả
+              </Badge>
+              {searchLog.retrievalLatencyMilliseconds && (
+                <Badge variant="outline" className="text-[10px] bg-white border-violet-200 text-violet-600 flex items-center gap-1">
+                  <Zap className="h-3 w-3" /> {(searchLog.retrievalLatencyMilliseconds / 1000).toFixed(2)}s
+                </Badge>
+              )}
+            </div>
+            {showInsights ? <ChevronUp className="h-4 w-4 text-violet-400" /> : <ChevronDown className="h-4 w-4 text-violet-400" />}
+          </button>
+
+          {showInsights && (
+            <div className="p-4 space-y-4">
+              {/* Query & Keywords */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <p className="text-[10px] uppercase font-semibold text-muted-foreground flex items-center gap-1">
+                    <SearchIcon className="h-3 w-3" /> User Raw Query
+                  </p>
+                  <p className="font-medium text-foreground text-xs">{searchLog.userRawQuery || "—"}</p>
+                </div>
+                <div className="space-y-1.5">
+                  <p className="text-[10px] uppercase font-semibold text-muted-foreground flex items-center gap-1">
+                    <Sparkles className="h-3 w-3" /> Trend Keywords
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {searchLog.trendKeywords?.map((kw, i) => (
+                      <Badge key={i} variant="secondary" className="text-[10px] font-normal">{kw}</Badge>
+                    )) || <span className="text-xs text-muted-foreground">—</span>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Products retrieved */}
+              {searchLog.products && searchLog.products.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[10px] uppercase font-semibold text-muted-foreground flex items-center gap-1">
+                    <Package className="h-3 w-3" /> Top {searchLog.topKResult} Sản phẩm truy xuất
+                  </p>
+                  <div className="overflow-x-auto rounded border border-border">
+                    <table className="w-full text-xs border-collapse">
+                      <thead className="bg-muted/50">
+                        <tr>
+                          <th className="px-2 py-1.5 text-left font-medium text-muted-foreground">Sản phẩm</th>
+                          <th className="px-2 py-1.5 text-left font-medium text-muted-foreground">Danh mục</th>
+                          <th className="px-2 py-1.5 text-right font-medium text-muted-foreground">Giá</th>
+                          <th className="px-2 py-1.5 text-right font-medium text-muted-foreground">Điểm Vector</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border bg-card">
+                        {searchLog.products.map((p, i) => (
+                          <tr key={i}>
+                            <td className="px-2 py-1.5 font-medium">{p.productName}</td>
+                            <td className="px-2 py-1.5 text-muted-foreground">{p.category}</td>
+                            <td className="px-2 py-1.5 text-right text-emerald-600 font-medium">
+                              {p.price ? new Intl.NumberFormat("vi-VN").format(p.price) : "—"}
+                            </td>
+                            <td className="px-2 py-1.5 text-right">
+                              <Badge variant="outline" className="text-[10px] bg-muted/30">
+                                {p.productScore ? p.productScore.toFixed(2) : "0.00"}
+                              </Badge>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── Conversation Detail Modal ──────────────────────────────────────────────
 
@@ -30,47 +172,113 @@ function ConversationDetailModal({
 }) {
   const [activeTab, setActiveTab] = useState<InsightTab>("chat");
   const [messages, setMessages] = useState<Message[]>([]);
-  const [orderEvents, setOrderEvents] = useState<OrderEvent[]>([]);
+  const [loadingMessages, setLoadingMessages] = useState(true);
+
+  // Metadata for filtering
   const [comparisons, setComparisons] = useState<ProductComparison[]>([]);
   const [searchLogs, setSearchLogs] = useState<SearchQueryLog[]>([]);
-  const [loadingTab, setLoadingTab] = useState(false);
+  const [orderEvents, setOrderEvents] = useState<OrderEvent[]>([]);
+  const [loadingMeta, setLoadingMeta] = useState(false);
 
-  // Fetch data for the active tab
+  const cid = customer.customerExternalId;
+  const vid = conversation.id;
+
+  // Always load all messages on open
   useEffect(() => {
-    const cid = customer.customerExternalId;
-    const vid = conversation.id;
-
-    const fetchTab = async () => {
-      setLoadingTab(true);
+    const fetchMessages = async () => {
+      setLoadingMessages(true);
       try {
-        if (activeTab === "chat" && messages.length === 0) {
-          const res = await customerAPI.getMessages(cid, vid, { Limit: 100 });
-          setMessages([...(res.data?.items || [])].reverse());
-        } else if (activeTab === "orders" && orderEvents.length === 0) {
-          const res = await customerAPI.getOrderEvents(cid, vid, { Limit: 50 });
-          setOrderEvents(res.data?.items || []);
-        } else if (activeTab === "compare" && comparisons.length === 0) {
+        const res = await customerAPI.getMessages(cid, vid, { Limit: 100 });
+        setMessages([...(res.data?.items || [])].reverse());
+      } catch (err: any) {
+        toast.error(`Không thể tải tin nhắn: ${err.message || "Lỗi"}`);
+      } finally {
+        setLoadingMessages(false);
+      }
+    };
+    fetchMessages();
+  }, [vid]);
+
+  // Fetch filter metadata when switching tabs (lazy)
+  useEffect(() => {
+    const fetchMeta = async () => {
+      setLoadingMeta(true);
+      try {
+        if (activeTab === "compare" && comparisons.length === 0) {
           const res = await customerAPI.getProductComparisons(cid, vid, { Limit: 50 });
           setComparisons(res.data?.items || []);
         } else if (activeTab === "search" && searchLogs.length === 0) {
           const res = await customerAPI.getSearchQueryLogs(cid, vid, { Limit: 50 });
           setSearchLogs(res.data?.items || []);
+        } else if (activeTab === "orders" && orderEvents.length === 0) {
+          const res = await customerAPI.getOrderEvents(cid, vid, { Limit: 50 });
+          setOrderEvents(res.data?.items || []);
         }
-      } catch (err: any) {
-        toast.error(`Không thể tải dữ liệu: ${err.message || "Lỗi không xác định"}`);
+      } catch {
+        // silent
       } finally {
-        setLoadingTab(false);
+        setLoadingMeta(false);
       }
     };
-    fetchTab();
-  }, [activeTab, conversation.id]);
+    if (activeTab !== "chat") fetchMeta();
+  }, [activeTab, vid]);
 
-  const tabs: { key: InsightTab; label: string; icon: React.ReactNode }[] = [
-    { key: "chat", label: "Lịch sử chat", icon: <MessageSquare className="h-3.5 w-3.5" /> },
-    { key: "search", label: "Nhật ký tìm kiếm", icon: <SearchIcon className="h-3.5 w-3.5" /> },
-    { key: "compare", label: "So sánh sản phẩm", icon: <Scale className="h-3.5 w-3.5" /> },
-    { key: "orders", label: "Lịch sử đơn hàng", icon: <ShoppingBag className="h-3.5 w-3.5" /> },
+  // Filter messages based on active tab
+  const getFilteredMessages = (): Message[] => {
+    if (activeTab === "chat") return messages;
+
+    if (activeTab === "compare") {
+      const msgIds = new Set(comparisons.map((c) => c.messageId).filter(Boolean));
+      return msgIds.size > 0 ? messages.filter((m) => msgIds.has(m.id)) : [];
+    }
+
+    if (activeTab === "search") {
+      const msgIds = new Set(searchLogs.map((s) => (s as any).messageId).filter(Boolean));
+      if (msgIds.size > 0) return messages.filter((m) => msgIds.has(m.id));
+      // Fallback: if no messageId, filter bot messages that contain search-like content
+      const queries = searchLogs.map((s) => s.query?.toLowerCase()).filter(Boolean);
+      if (queries.length === 0) return [];
+      return messages.filter(
+        (m) => queries.some((q) => q && m.content?.toLowerCase().includes(q))
+      );
+    }
+
+    if (activeTab === "orders") {
+      const msgIds = new Set(orderEvents.map((o) => (o as any).messageId).filter(Boolean));
+      if (msgIds.size > 0) return messages.filter((m) => msgIds.has(m.id));
+      // Fallback: filter messages mentioning order keywords
+      const orderKeywords = ["đơn hàng", "đặt hàng", "thanh toán", "order", "mua"];
+      return messages.filter(
+        (m) => orderKeywords.some((kw) => m.content?.toLowerCase().includes(kw))
+      );
+    }
+
+    return messages;
+  };
+
+  const filteredMessages = getFilteredMessages();
+  const isLoading = loadingMessages || (activeTab !== "chat" && loadingMeta);
+
+  const tabs: { key: InsightTab; label: string; icon: React.ReactNode; count?: number }[] = [
+    { key: "chat", label: "Tất cả", icon: <MessageSquare className="h-3.5 w-3.5" />, count: messages.length },
+    { key: "search", label: "Tìm kiếm", icon: <SearchIcon className="h-3.5 w-3.5" />, count: searchLogs.length || undefined },
+    { key: "compare", label: "So sánh", icon: <Scale className="h-3.5 w-3.5" />, count: comparisons.length || undefined },
+    { key: "orders", label: "Đơn hàng", icon: <ShoppingBag className="h-3.5 w-3.5" />, count: orderEvents.length || undefined },
   ];
+
+  const emptyTexts: Record<InsightTab, string> = {
+    chat: "Không có tin nhắn nào trong phiên này.",
+    search: "Không có tin nhắn tìm kiếm sản phẩm nào trong phiên này.",
+    compare: "Không có tin nhắn so sánh sản phẩm nào trong phiên này.",
+    orders: "Không có tin nhắn liên quan đến đơn hàng nào trong phiên này.",
+  };
+
+  const emptyIcons: Record<InsightTab, React.ReactNode> = {
+    chat: <MessageSquare />,
+    search: <SearchIcon />,
+    compare: <Scale />,
+    orders: <ShoppingBag />,
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
@@ -108,146 +316,33 @@ function ConversationDetailModal({
             >
               {tab.icon}
               {tab.label}
+              {tab.count != null && tab.count > 0 && (
+                <span className="ml-0.5 text-[10px] bg-muted px-1.5 py-0.5 rounded-full font-normal">{tab.count}</span>
+              )}
             </button>
           ))}
         </div>
 
-        {/* Tab Content */}
+        {/* Unified Chat Content */}
         <div className="relative flex-1 min-h-0">
           <div className="absolute inset-0 overflow-y-auto">
-          {loadingTab ? (
-            <div className="flex h-full items-center justify-center text-muted-foreground">
-              <Loader2 className="h-6 w-6 animate-spin mr-2" /> Đang tải...
-            </div>
-          ) : (
-            <>
-              {/* Chat Tab */}
-              {activeTab === "chat" && (
-                <ScrollArea className="h-full max-h-full">
-                  <div className="p-4 space-y-4">
-                    {messages.length === 0 ? (
-                      <EmptyState icon={<MessageSquare />} text="Không có tin nhắn nào trong phiên này." />
-                    ) : messages.map((msg) => {
-                      const isBot = msg.senderType === "ChatBot";
-                      return (
-                        <div key={msg.id} className={`flex ${isBot ? "justify-start" : "justify-end"}`}>
-                          <div className={`flex max-w-[80%] gap-2 ${isBot ? "flex-row" : "flex-row-reverse"}`}>
-                            <div className={`flex-shrink-0 h-7 w-7 rounded-full flex items-center justify-center text-xs ${isBot ? "bg-primary/10 text-primary" : "bg-muted"}`}>
-                              {isBot ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
-                            </div>
-                            <div className={`flex flex-col ${isBot ? "items-start" : "items-end"}`}>
-                              <div className={`rounded-2xl px-3.5 py-2 text-sm shadow-sm ${
-                                isBot ? "bg-card border rounded-tl-sm" : "bg-primary text-primary-foreground rounded-tr-sm"
-                              }`}>
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
-                              </div>
-                              <span className="text-[10px] text-muted-foreground mt-1 px-1">
-                                {new Date(msg.createdAt).toLocaleTimeString("vi-VN", { timeStyle: "short" })}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </ScrollArea>
-              )}
-
-              {/* Search Query Logs Tab */}
-              {activeTab === "search" && (
-                <ScrollArea className="h-full max-h-full">
-                  <div className="p-4 space-y-2">
-                    {searchLogs.length === 0 ? (
-                      <EmptyState icon={<SearchIcon />} text="Khách hàng chưa thực hiện tìm kiếm nào trong phiên này." />
-                    ) : searchLogs.map((log, i) => (
-                      <div key={log.id || i} className="flex items-center justify-between rounded-lg border p-3 bg-card hover:bg-muted/30 transition-colors">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <SearchIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          <span className="text-sm truncate">{log.query || JSON.stringify(log)}</span>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                          {log.resultCount !== undefined && (
-                            <Badge variant={log.hasResults || log.resultCount > 0 ? "default" : "destructive"} className="text-xs">
-                              {log.resultCount} kết quả
-                            </Badge>
-                          )}
-                          {log.createdAt && (
-                            <span className="text-xs text-muted-foreground">{new Date(log.createdAt).toLocaleTimeString("vi-VN", { timeStyle: "short" })}</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              )}
-
-              {/* Product Comparisons Tab */}
-              {activeTab === "compare" && (
-                <ScrollArea className="h-full max-h-full">
-                  <div className="p-4 space-y-3">
-                    {comparisons.length === 0 ? (
-                      <EmptyState icon={<Scale />} text="Khách hàng chưa so sánh sản phẩm nào trong phiên này." />
-                    ) : comparisons.map((comp, i) => (
-                      <div key={comp.id || i} className="rounded-lg border p-3 bg-card space-y-2">
-                        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                          <Scale className="h-4 w-4" /> So sánh #{i + 1}
-                          {comp.createdAt && <span className="ml-auto text-xs font-normal">{new Date(comp.createdAt).toLocaleTimeString("vi-VN", { timeStyle: "short" })}</span>}
-                        </div>
-                        {comp.products?.length ? (
-                          <div className="flex gap-2 flex-wrap">
-                            {comp.products.map((p, pi) => (
-                              <Badge key={pi} variant="secondary" className="text-xs">
-                                {p.name || p.id}
-                              </Badge>
-                            ))}
-                          </div>
-                        ) : (
-                          <pre className="text-xs text-muted-foreground bg-muted rounded p-2 overflow-auto">{JSON.stringify(comp, null, 2)}</pre>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              )}
-
-              {/* Order Events Tab */}
-              {activeTab === "orders" && (
-                <ScrollArea className="h-full max-h-full">
-                  <div className="p-4 space-y-2">
-                    {orderEvents.length === 0 ? (
-                      <EmptyState icon={<ShoppingBag />} text="Chưa có đơn hàng nào được tạo trong phiên chat này." />
-                    ) : orderEvents.map((order, i) => (
-                      <div key={order.id || i} className="flex items-center justify-between rounded-lg border p-3 bg-card hover:bg-muted/30 transition-colors">
-                        <div className="flex items-center gap-2">
-                          <Package className="h-4 w-4 text-muted-foreground" />
-                          <div>
-                            <div className="text-sm font-medium">
-                              {order.orderCode ? `#${order.orderCode}` : `Đơn hàng #${i + 1}`}
-                            </div>
-                            {order.createdAt && (
-                              <div className="text-xs text-muted-foreground">
-                                {new Date(order.createdAt).toLocaleString("vi-VN")}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {order.totalAmount !== undefined && (
-                            <span className="text-sm font-semibold text-emerald-600">
-                              {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(order.totalAmount)}
-                            </span>
-                          )}
-                          {order.status && (
-                            <Badge variant="outline" className="text-xs">{order.status}</Badge>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              )}
-            </>
-          )}
+            {isLoading ? (
+              <div className="flex h-full items-center justify-center text-muted-foreground">
+                <Loader2 className="h-6 w-6 animate-spin mr-2" /> Đang tải...
+              </div>
+            ) : filteredMessages.length === 0 ? (
+              <EmptyState icon={emptyIcons[activeTab]} text={emptyTexts[activeTab]} />
+            ) : (
+              <div className="p-4 space-y-4">
+                {filteredMessages.map((msg) => (
+                  <ChatBubble 
+                    key={msg.id} 
+                    msg={msg} 
+                    searchLog={activeTab === "search" ? searchLogs.find(s => s.messageId === msg.id) : undefined}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -255,7 +350,144 @@ function ConversationDetailModal({
   );
 }
 
+
+// ─── Comparison Card Component ───────────────────────────────────────────────
+
+function ComparisonCard({ comp, index }: { comp: ProductComparison; index: number }) {
+  const products = comp.products || [];
+  const [productDetails, setProductDetails] = useState<Record<string, any>>({});
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
+  // Fetch product details for all products in comparison
+  useEffect(() => {
+    const idsToFetch = products
+      .map((p) => p.productId)
+      .filter((id): id is string => !!id && !productDetails[id]);
+
+    if (idsToFetch.length === 0) return;
+
+    const fetchAll = async () => {
+      setLoadingDetails(true);
+      const results: Record<string, any> = {};
+      await Promise.allSettled(
+        idsToFetch.map(async (id) => {
+          try {
+            const res = await productAPI.getProductById(id);
+            if (res.data) results[id] = res.data;
+          } catch {
+            // ignore individual failures
+          }
+        })
+      );
+      setProductDetails((prev) => ({ ...prev, ...results }));
+      setLoadingDetails(false);
+    };
+
+    fetchAll();
+  }, [comp.id]);
+
+  const fmt = (price?: number | null) =>
+    price != null
+      ? new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price)
+      : "—";
+
+  // Merge comparison product data with fetched detail
+  const enriched = products.map((p) => ({
+    ...p,
+    ...(p.productId ? productDetails[p.productId] : {}),
+  }));
+
+  // Rows for the comparison table
+  const rows: { label: string; key: (p: any) => React.ReactNode }[] = [
+    { label: "Tên sản phẩm", key: (p) => <span className="font-medium">{p.productName || p.name || "—"}</span> },
+    { label: "Danh mục", key: (p) => p.category || "—" },
+    { label: "Thương hiệu", key: (p) => p.brand || "—" },
+    { label: "Giá bán", key: (p) => <span className="font-semibold text-emerald-600">{fmt(p.price)}</span> },
+    { label: "Tồn kho", key: (p) => p.stockQuantity != null ? `${p.stockQuantity}` : "—" },
+    { label: "Mô tả", key: (p) => p.description ? <span className="line-clamp-3 text-xs">{p.description}</span> : "—" },
+  ];
+
+  return (
+    <div className="flex justify-start">
+      <div className="flex max-w-[90%] gap-2 flex-row">
+        {/* Bot Avatar */}
+        <div className="flex-shrink-0 h-7 w-7 rounded-full flex items-center justify-center bg-primary/10 text-primary mt-1">
+          <Bot className="h-4 w-4" />
+        </div>
+
+        <div className="flex flex-col items-start">
+          {/* Bubble */}
+          <div className="rounded-2xl rounded-tl-sm bg-card border px-3.5 py-3 text-sm shadow-sm space-y-3 max-w-full">
+
+            {/* Title */}
+            {comp.title && (
+              <p className="font-medium text-foreground">{comp.title}</p>
+            )}
+
+            {/* Loading indicator */}
+            {loadingDetails && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" /> Đang tải chi tiết sản phẩm...
+              </div>
+            )}
+
+            {/* Comparison table — inline inside bubble */}
+            {enriched.length > 0 && (
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-muted/60 border-b border-border">
+                      <th className="px-3 py-2 text-left font-semibold text-muted-foreground whitespace-nowrap w-28">Tiêu chí</th>
+                      {enriched.map((p, pi) => (
+                        <th key={pi} className="px-3 py-2 text-center font-semibold text-foreground border-l border-border whitespace-nowrap">
+                          <span className="flex items-center justify-center gap-1">
+                            <Package className="h-3 w-3 text-violet-500" />
+                            {p.productName || p.name || `SP ${pi + 1}`}
+                          </span>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {rows.map((row, ri) => (
+                      <tr key={ri} className="hover:bg-muted/20 transition-colors">
+                        <td className="px-3 py-2 font-medium text-muted-foreground whitespace-nowrap bg-muted/20">
+                          {row.label}
+                        </td>
+                        {enriched.map((p, pi) => (
+                          <td key={pi} className="px-3 py-2 text-center border-l border-border">
+                            {row.key(p)}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Summary below table */}
+            {comp.summary && (
+              <p className="text-xs text-muted-foreground leading-relaxed border-t pt-2">{comp.summary}</p>
+            )}
+          </div>
+
+          {/* Timestamp */}
+          <span className="text-[10px] text-muted-foreground mt-1 px-1">
+            {comp.createdAt
+              ? new Date(comp.createdAt).toLocaleTimeString("vi-VN", { timeStyle: "short" })
+              : ""}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+
 function EmptyState({ icon, text }: { icon: React.ReactNode; text: string }) {
+
   return (
     <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
       <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center opacity-40">

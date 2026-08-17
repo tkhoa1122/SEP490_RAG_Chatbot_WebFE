@@ -77,13 +77,7 @@ const SEARCHABLE_SCREENS: SearchableScreen[] = [
     icon: BarChart,
     description: "Thống kê doanh thu và biểu đồ phân tích",
   },
-  {
-    label: "Hiệu suất AI",
-    keywords: ["performance", "hiệu suất", "AI", "tốc độ", "chất lượng"],
-    href: (t) => `/${t}/business/performance`,
-    icon: Activity,
-    description: "Theo dõi hiệu suất hoạt động của chatbot AI",
-  },
+
   {
     label: "API Keys",
     keywords: ["api", "key", "api key", "integration", "tích hợp", "khóa"],

@@ -59,9 +59,19 @@ export interface OrderEvent {
 }
 
 /** Product Comparison — Sự kiện so sánh sản phẩm */
+export interface ComparedProduct {
+  productId?: string;
+  productName?: string;
+  price?: number;
+  category?: string;
+}
+
 export interface ProductComparison {
   id?: string;
-  products?: Array<{ id?: string; name?: string; price?: number }>;
+  messageId?: string;
+  title?: string;
+  summary?: string;
+  products?: ComparedProduct[];
   createdAt?: string;
   [key: string]: any;
 }
@@ -69,9 +79,22 @@ export interface ProductComparison {
 /** Search Query Log — Lịch sử tìm kiếm sản phẩm */
 export interface SearchQueryLog {
   id?: string;
-  query?: string;
+  messageId?: string;
+  userRawQuery?: string;
+  trendKeywords?: string[];
+  interactionType?: string;
+  zeroResult?: boolean;
   resultCount?: number;
-  hasResults?: boolean;
+  topKResult?: number;
+  hitRateScore?: number;
+  retrievalLatencyMilliseconds?: number;
+  products?: Array<{
+    productId?: string;
+    productName?: string;
+    price?: number;
+    category?: string;
+    productScore?: number;
+  }>;
   createdAt?: string;
   [key: string]: any;
 }

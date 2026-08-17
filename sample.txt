@@ -1,0 +1,288 @@
+{
+    "isSuccess": true,
+    "message": "Get business dashboard successfully.",
+    "messageCode": null,
+    "data": {
+        "from": "2026-07-17T00:00:00+07:00",
+        "to": "2026-08-17T00:00:00+07:00",
+        "totalProducts": 74,
+        "totalKnowledgeDocuments": 1,
+        "totalChatSessions": 15,
+        "totalChatMessages": 43,
+        "totalOrders": 2,
+        "paidOrders": 0,
+        "conversionRate": 0,
+        "averageRetrievalLatencyMilliseconds": 4929.488372093023,
+        "averageSearchHitRatePercentage": 0.4024137931034482,
+        "chatTraffic": [
+            {
+                "date": "2026-07-17",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-07-18",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-07-19",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-07-20",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-07-21",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-07-22",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-07-23",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-07-24",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-07-25",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-07-26",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-07-27",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-07-28",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-07-29",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-07-30",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-07-31",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-08-01",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-08-02",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-08-03",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-08-04",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-08-05",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-08-06",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-08-07",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-08-08",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-08-09",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-08-10",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-08-11",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-08-12",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-08-13",
+                "sessions": 0,
+                "messages": 0
+            },
+            {
+                "date": "2026-08-14",
+                "sessions": 2,
+                "messages": 6
+            },
+            {
+                "date": "2026-08-15",
+                "sessions": 10,
+                "messages": 20
+            },
+            {
+                "date": "2026-08-16",
+                "sessions": 5,
+                "messages": 17
+            }
+        ],
+        "zeroResultQueries": [
+            {
+                "query": "Mình muốn mua thêm phụ kiện cho chiếc áo này.”",
+                "count": 1,
+                "lastOccurredAt": "2026-08-16T01:55:05+07:00"
+            },
+            {
+                "query": "có phụ kiện nào đi kèm ngon hơn không ?",
+                "count": 1,
+                "lastOccurredAt": "2026-08-16T01:52:31+07:00"
+            },
+            {
+                "query": "mắc hơn thì sao",
+                "count": 1,
+                "lastOccurredAt": "2026-08-16T01:43:38+07:00"
+            },
+            {
+                "query": "có áo nào rẻ hơn không ?",
+                "count": 1,
+                "lastOccurredAt": "2026-08-16T01:42:57+07:00"
+            },
+            {
+                "query": "rẻ hơn thì sao",
+                "count": 1,
+                "lastOccurredAt": "2026-08-16T01:29:43+07:00"
+            },
+            {
+                "query": "có cái nào ngon hơn ko ?",
+                "count": 1,
+                "lastOccurredAt": "2026-08-16T01:29:26+07:00"
+            },
+            {
+                "query": "Tôi cần so sánh \"Áo thun nữ in hình retro Y2K\" (productId: 37) và \"Áo khoác dạ dài nữ mùa đông\" (productId: 24). Hãy so sánh chi tiết và tư vấn nên chọn sản phẩm nào nhé.",
+                "count": 1,
+                "lastOccurredAt": "2026-08-15T16:34:30+07:00"
+            },
+            {
+                "query": "So sánh chi tiết 2 sản phẩm sau và đưa ra lời khuyên nên mua sản phẩm nào:\n1. Áo thun nữ in hình retro Y2K (RetroVibe) - Áo nữ\n2. Túi tote canvas đi học đi làm (CarryAll) - Túi xách",
+                "count": 1,
+                "lastOccurredAt": "2026-08-15T16:29:30+07:00"
+            },
+            {
+                "query": "áo thun thể thao",
+                "count": 1,
+                "lastOccurredAt": "2026-08-14T23:57:11+07:00"
+            },
+            {
+                "query": "bạn có loại nào",
+                "count": 1,
+                "lastOccurredAt": "2026-08-14T23:56:59+07:00"
+            }
+        ],
+        "intents": [
+            {
+                "intent": "Unknown",
+                "count": 23
+            },
+            {
+                "intent": "ProductSearch",
+                "count": 15
+            },
+            {
+                "intent": "ProductDetail",
+                "count": 3
+            },
+            {
+                "intent": "ProductComparison",
+                "count": 2
+            }
+        ],
+        "trendingKeywords": [
+            {
+                "keyword": "áo nam đi đám cưới",
+                "count": 6
+            },
+            {
+                "keyword": "áo khoác mùa đông",
+                "count": 4
+            },
+            {
+                "keyword": "áo khoác dạ nữ",
+                "count": 4
+            },
+            {
+                "keyword": "áo polo nam",
+                "count": 4
+            },
+            {
+                "keyword": "áo nam dưới 300k",
+                "count": 4
+            },
+            {
+                "keyword": "áo thun mùa hè",
+                "count": 3
+            },
+            {
+                "keyword": "áo thun nữ retro y2k",
+                "count": 3
+            },
+            {
+                "keyword": "áo thun",
+                "count": 2
+            },
+            {
+                "keyword": "áo nam thể thao",
+                "count": 2
+            },
+            {
+                "keyword": "áo thun thể thao nam",
+                "count": 2
+            }
+        ]
+    },
+    "errors": null
+}

@@ -122,22 +122,32 @@ export function CreateBusinessModal({ open, onOpenChange, onSuccess }: CreateBus
             <div className="space-y-2 col-span-2 sm:col-span-1">
               <label className="text-sm font-medium">Hotline</label>
               <input
-                {...register("hotLine")}
+                {...register("hotLine", {
+                  pattern: { value: /^[0-9]{10,11}$/, message: "Số điện thoại không hợp lệ (10-11 số)" }
+                })}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                 placeholder="0912345678"
                 disabled={loading}
               />
+              {errors.hotLine && (
+                <p className="text-[11px] text-red-500">{errors.hotLine.message}</p>
+              )}
             </div>
 
             <div className="space-y-2 col-span-2 sm:col-span-1">
               <label className="text-sm font-medium">URL Website</label>
               <input
-                {...register("websiteUrl")}
-                required
+                {...register("websiteUrl", {
+                  required: "Vui lòng nhập URL website",
+                  pattern: { value: /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i, message: "URL không hợp lệ" }
+                })}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                 placeholder="https://example.com"
                 disabled={loading}
               />
+              {errors.websiteUrl && (
+                <p className="text-[11px] text-red-500">{errors.websiteUrl.message}</p>
+              )}
             </div>
 
             <div className="space-y-2 col-span-2">

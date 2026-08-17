@@ -15,6 +15,7 @@ export interface ProductCreateCommand {
   externalId?: string | null;        // ID sản phẩm từ hệ thống bên ngoài (nếu có)
   name?: string | null;              // Tên sản phẩm
   description?: string | null;       // Mô tả
+  externalProductUrl?: string | null; // Đường dẫn sản phẩm (link ngoài)
   price: number;                     // Giá bán
   currency?: string | null;          // Đơn vị tiền tệ (VD: "VND", "USD")
   brand?: string | null;             // Thương hiệu

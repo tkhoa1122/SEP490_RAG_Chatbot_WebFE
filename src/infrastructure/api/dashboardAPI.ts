@@ -66,6 +66,19 @@ export interface BusinessChatTraffic {
   sessions: number;
   messages: number;
 }
+export interface ZeroResultQuery {
+  query: string;
+  count: number;
+  lastOccurredAt: string;
+}
+export interface IntentStat {
+  intent: string;
+  count: number;
+}
+export interface TrendingKeyword {
+  keyword: string;
+  count: number;
+}
 export interface BusinessAnalyticsResponse {
   from: string;
   to: string;
@@ -79,9 +92,9 @@ export interface BusinessAnalyticsResponse {
   averageRetrievalLatencyMilliseconds: number | null;
   averageSearchHitRatePercentage: number | null;
   chatTraffic: BusinessChatTraffic[];
-  zeroResultQueries: any[];
-  intents: any[];
-  trendingKeywords: any[];
+  zeroResultQueries: ZeroResultQuery[];
+  intents: IntentStat[];
+  trendingKeywords: TrendingKeyword[];
 }
 
 export const dashboardAPI = {
