@@ -175,7 +175,7 @@ export function BusinessOverviewDashboard({ tenantId }: { tenantId: string }) {
             <Target className="h-4 w-4 text-emerald-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-emerald-700">{(data?.averageSearchHitRatePercentage || 0).toFixed(2)}%</div>
+            <div className="text-2xl font-bold text-emerald-700">{Number(((data?.averageSearchHitRatePercentage || 0) * 100).toFixed(2))}%</div>
             <p className="text-xs text-emerald-600/80 mt-1">
               Truy xuất đúng sản phẩm/tài liệu
             </p>
