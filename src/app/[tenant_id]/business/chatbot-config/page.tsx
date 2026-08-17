@@ -27,13 +27,29 @@ export default function ChatbotConfigPage() {
       const res = await businessAPI.getConfig();
       setConfig(res.data || {});
     } catch (error: any) {
-      toast.error("Không thể tải cấu hình Chatbot", { description: error.message });
+      toast.error("Không thể tải cấu hình Chatbot", { description: error.response?.data?.message || error.message });
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleSave = async () => {
+    // Validation
+    if (config.maxOutPutToken && (config.maxOutPutToken < 1 || config.maxOutPutToken > 8192)) {
+      toast.error("Độ dài câu trả lời (Max Tokens) phải từ 1 đến 8192");
+      return;
+    }
+    if (config.topKDocument && (config.topKDocument < 1 || config.topKDocument > 20)) {
+      toast.error("Số lượng tài liệu (Top K) phải từ 1 đến 20");
+      return;
+    }
+    if (config.rerankingScore !== undefined && config.rerankingScore !== null) {
+      if (config.rerankingScore < 0 || config.rerankingScore > 1) {
+        toast.error("Độ tương đồng (Reranking Score) phải từ 0 đến 1");
+        return;
+      }
+    }
+
     setIsSaving(true);
     try {
       const payload: UpdateBusinessConfigCommand = {
@@ -48,7 +64,7 @@ export default function ChatbotConfigPage() {
       toast.success("Đã lưu cấu hình Chatbot thành công!");
       fetchConfig();
     } catch (error: any) {
-      toast.error("Lỗi khi lưu cấu hình", { description: error.message });
+      toast.error("Lỗi khi lưu cấu hình", { description: error.response?.data?.message || error.message });
     } finally {
       setIsSaving(false);
     }
@@ -62,7 +78,7 @@ export default function ChatbotConfigPage() {
       toast.success("Đã khôi phục cấu hình mặc định!");
       fetchConfig();
     } catch (error: any) {
-      toast.error("Lỗi khi khôi phục cấu hình", { description: error.message });
+      toast.error("Lỗi khi khôi phục cấu hình", { description: error.response?.data?.message || error.message });
     } finally {
       setIsResetting(false);
     }
@@ -134,12 +150,36 @@ export default function ChatbotConfigPage() {
               
               <div className="space-y-2">
                 <Label htmlFor="maxTokens">Độ dài câu trả lời tối đa (Max Tokens)</Label>
-                <Input 
-                  id="maxTokens" 
-                  type="number" 
-                  value={config.maxOutPutToken ?? 1000} 
-                  onChange={(e) => handleChange("maxOutPutToken", parseInt(e.target.value) || 1000)}
-                />
+                <div className="flex items-center gap-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-9 w-9 shrink-0" 
+                    onClick={() => handleChange("maxOutPutToken", Math.max(1, (config.maxOutPutToken ?? 1000) - 100))}
+                  >
+                    -
+                  </Button>
+                  <Input 
+                    id="maxTokens" 
+                    type="text" 
+                    className="text-center font-mono h-9"
+                    value={config.maxOutPutToken ?? 1000} 
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value.replace(/\D/g, ""));
+                      handleChange("maxOutPutToken", isNaN(val) ? 1000 : val);
+                    }}
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-9 w-9 shrink-0" 
+                    onClick={() => handleChange("maxOutPutToken", Math.min(8192, (config.maxOutPutToken ?? 1000) + 100))}
+                  >
+                    +
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -154,22 +194,90 @@ export default function ChatbotConfigPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="topK">Số lượng tài liệu (Top K)</Label>
-                <Input 
-                  id="topK" 
-                  type="number" 
-                  value={config.topKDocument ?? 4} 
-                  onChange={(e) => handleChange("topKDocument", parseInt(e.target.value) || 4)}
-                />
+                <div className="flex items-center gap-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-9 w-9 shrink-0" 
+                    onClick={() => handleChange("topKDocument", Math.max(1, (config.topKDocument ?? 4) - 1))}
+                  >
+                    -
+                  </Button>
+                  <Input 
+                    id="topK" 
+                    type="text" 
+                    className="text-center font-mono h-9"
+                    value={config.topKDocument ?? 4} 
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value.replace(/\D/g, ""));
+                      handleChange("topKDocument", isNaN(val) ? 4 : val);
+                    }}
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-9 w-9 shrink-0" 
+                    onClick={() => handleChange("topKDocument", Math.min(20, (config.topKDocument ?? 4) + 1))}
+                  >
+                    +
+                  </Button>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="similarity">Độ tương đồng (Reranking Score)</Label>
-                <Input 
-                  id="similarity" 
-                  type="number" 
-                  step="0.05" 
-                  value={config.rerankingScore ?? 0.75} 
-                  onChange={(e) => handleChange("rerankingScore", parseFloat(e.target.value) || 0.75)}
-                />
+                <div className="flex items-center gap-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-9 w-9 shrink-0" 
+                    onClick={() => {
+                      const cur = config.rerankingScore ?? 0.75;
+                      handleChange("rerankingScore", Math.max(0, parseFloat((cur - 0.05).toFixed(2))));
+                    }}
+                  >
+                    -
+                  </Button>
+                  <Input 
+                    id="similarity" 
+                    type="text" 
+                    className="text-center font-mono h-9"
+                    value={config.rerankingScore ?? 0.75} 
+                    onChange={(e) => {
+                      // Thay dấu phẩy thành dấu chấm để parse float đúng chuẩn
+                      let strVal = e.target.value.replace(/,/g, ".");
+                      // Giữ lại số và 1 dấu chấm
+                      strVal = strVal.replace(/[^0-9.]/g, "");
+                      
+                      if (strVal === "" || strVal === ".") {
+                        handleChange("rerankingScore", 0);
+                        return;
+                      }
+                      
+                      let val = parseFloat(strVal);
+                      if (!isNaN(val)) {
+                         handleChange("rerankingScore", val);
+                      }
+                    }}
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-9 w-9 shrink-0" 
+                    onClick={() => {
+                      const cur = config.rerankingScore ?? 0.75;
+                      handleChange("rerankingScore", Math.min(1, parseFloat((cur + 0.05).toFixed(2))));
+                    }}
+                  >
+                    +
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Giá trị từ 0.0 đến 1.0 (Có thể nhập số thập phân bằng dấu phẩy)
+                </p>
               </div>
             </CardContent>
           </Card>
