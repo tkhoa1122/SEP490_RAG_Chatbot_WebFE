@@ -330,6 +330,26 @@ function ConversationDetailModal({
               <div className="flex h-full items-center justify-center text-muted-foreground">
                 <Loader2 className="h-6 w-6 animate-spin mr-2" /> Đang tải...
               </div>
+            ) : activeTab === "orders" ? (
+              orderEvents.length === 0 ? (
+                <EmptyState icon={emptyIcons[activeTab]} text={emptyTexts[activeTab]} />
+              ) : (
+                <div className="p-4 space-y-4">
+                  {orderEvents.map((order, i) => (
+                    <OrderEventCard key={order.id || i} order={order} />
+                  ))}
+                </div>
+              )
+            ) : activeTab === "compare" ? (
+              comparisons.length === 0 ? (
+                <EmptyState icon={emptyIcons[activeTab]} text={emptyTexts[activeTab]} />
+              ) : (
+                <div className="p-4 space-y-4">
+                  {comparisons.map((comp, i) => (
+                    <ComparisonCard key={comp.id || i} comp={comp} index={i} />
+                  ))}
+                </div>
+              )
             ) : filteredMessages.length === 0 ? (
               <EmptyState icon={emptyIcons[activeTab]} text={emptyTexts[activeTab]} />
             ) : (
@@ -338,7 +358,7 @@ function ConversationDetailModal({
                   <ChatBubble 
                     key={msg.id} 
                     msg={msg} 
-                    searchLog={activeTab === "search" ? searchLogs.find(s => s.messageId === msg.id) : undefined}
+                    searchLog={activeTab === "search" ? searchLogs.find(s => (s as any).messageId === msg.id) : undefined}
                   />
                 ))}
               </div>
@@ -350,6 +370,74 @@ function ConversationDetailModal({
   );
 }
 
+
+// ─── Order Event Card Component ───────────────────────────────────────────────
+
+function OrderEventCard({ order }: { order: OrderEvent }) {
+  const fmt = (price?: number | null) =>
+    price != null
+      ? new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price)
+      : "—";
+
+  const isSuccess = order.status === "Success" || order.status === "Completed";
+  const badgeClass = isSuccess
+    ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+    : "bg-blue-100 text-blue-700 border-blue-200";
+
+  return (
+    <div className="flex justify-start">
+      <div className="flex max-w-[90%] gap-2 flex-row">
+        {/* System Avatar */}
+        <div className="flex-shrink-0 h-7 w-7 rounded-full flex items-center justify-center bg-amber-100 text-amber-600 mt-1">
+          <ShoppingBag className="h-4 w-4" />
+        </div>
+
+        <div className="flex flex-col items-start">
+          {/* Bubble */}
+          <div className="rounded-2xl rounded-tl-sm bg-card border px-3.5 py-3 text-sm shadow-sm space-y-3 max-w-full min-w-[280px]">
+            <div className="flex items-center justify-between gap-4 border-b pb-2">
+              <span className="font-semibold text-foreground">
+                Đơn hàng #{order.externalOrderId || order.orderId || order.orderCode || "N/A"}
+              </span>
+              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${badgeClass}`}>
+                {order.status || "N/A"}
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              {order.products && order.products.length > 0 ? (
+                order.products.map((p: any, i: number) => (
+                  <div key={i} className="flex justify-between items-center text-xs">
+                    <span className="font-medium text-muted-foreground max-w-[180px] truncate" title={p.productName}>
+                      {p.quantity}x {p.productName}
+                    </span>
+                    <span className="font-semibold text-foreground">
+                      {fmt(p.price)}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-xs text-muted-foreground">Không có chi tiết sản phẩm</div>
+              )}
+            </div>
+
+            <div className="flex justify-between items-center border-t pt-2 mt-2">
+              <span className="text-xs font-semibold text-muted-foreground">Tổng cộng:</span>
+              <span className="text-sm font-bold text-amber-600">{fmt(order.amount || order.totalAmount)}</span>
+            </div>
+          </div>
+
+          {/* Timestamp */}
+          <span className="text-[10px] text-muted-foreground mt-1 px-1">
+            {order.createdAt
+              ? new Date(order.createdAt).toLocaleTimeString("vi-VN", { timeStyle: "short" })
+              : ""}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─── Comparison Card Component ───────────────────────────────────────────────
 
