@@ -49,13 +49,12 @@ export default function RegisterPage() {
     businessName: "",
     fullName: "",
     email: "",
-    password: "",
-    confirmPassword: "",
+    hotLine: "",
+    websiteUrl: "",
+    addressLine: "",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [showPass, setShowPass] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -67,20 +66,29 @@ export default function RegisterPage() {
     if (!form.fullName.trim()) newErrors.fullName = "Vui lòng nhập họ và tên.";
     if (!form.email.trim()) newErrors.email = "Vui lòng nhập email.";
     else if (!/\S+@\S+\.\S+/.test(form.email)) newErrors.email = "Email không hợp lệ.";
-    if (!form.password) newErrors.password = "Vui lòng nhập mật khẩu.";
-    if (!form.confirmPassword) newErrors.confirmPassword = "Vui lòng xác nhận mật khẩu.";
-    else if (form.password !== form.confirmPassword) newErrors.confirmPassword = "Mật khẩu xác nhận không khớp.";
+
+    if (form.hotLine.trim() && !/^[0-9]{10,11}$/.test(form.hotLine.trim())) {
+      newErrors.hotLine = "Số điện thoại không hợp lệ (10-11 số).";
+    }
+    if (form.websiteUrl.trim() && !/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i.test(form.websiteUrl.trim())) {
+      newErrors.websiteUrl = "URL website không hợp lệ.";
+    }
 
     setErrors(newErrors);
 
     if (Object.keys(newErrors).length === 0) {
       setIsLoading(true);
       try {
-        await businessAPI.create({
+        const payload: any = {
           businessName: form.businessName,
           businessOwnerName: form.fullName,
           businessOwnerEmail: form.email,
-        });
+        };
+        if (form.hotLine.trim()) payload.hotLine = form.hotLine.trim();
+        if (form.websiteUrl.trim()) payload.websiteUrl = form.websiteUrl.trim();
+        if (form.addressLine.trim()) payload.addressLine = form.addressLine.trim();
+
+        await businessAPI.create(payload);
         setIsSuccess(true);
       } catch (err: any) {
         const errorMsg = err.response?.data?.message || err.message || "Đăng ký thất bại, vui lòng thử lại sau.";
@@ -184,53 +192,45 @@ export default function RegisterPage() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="password">Mật khẩu</Label>
-            <div className="relative">
-              <Input
-                id="password"
-                name="password"
-                type={showPass ? "text" : "password"}
-                placeholder="••••••••"
-                value={form.password}
-                onChange={handleChange}
-                error={!!errors.password}
-                disabled={isLoading}
-                className="pr-11"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPass(!showPass)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-            {errors.password && <p className="mt-1 text-xs font-medium text-red-500">{errors.password}</p>}
+            <Label htmlFor="hotLine">Hotline (Tùy chọn)</Label>
+            <Input
+              id="hotLine"
+              name="hotLine"
+              placeholder="VD: 0912345678"
+              value={form.hotLine}
+              onChange={handleChange}
+              error={!!errors.hotLine}
+              disabled={isLoading}
+            />
+            {errors.hotLine && <p className="mt-1 text-xs font-medium text-red-500">{errors.hotLine}</p>}
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="confirmPassword">Xác nhận mật khẩu</Label>
-            <div className="relative">
-              <Input
-                id="confirmPassword"
-                name="confirmPassword"
-                type={showConfirm ? "text" : "password"}
-                placeholder="••••••••"
-                value={form.confirmPassword}
-                onChange={handleChange}
-                error={!!errors.confirmPassword}
-                disabled={isLoading}
-                className="pr-11"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirm(!showConfirm)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-            {errors.confirmPassword && <p className="mt-1 text-xs font-medium text-red-500">{errors.confirmPassword}</p>}
+            <Label htmlFor="websiteUrl">URL Website (Tùy chọn)</Label>
+            <Input
+              id="websiteUrl"
+              name="websiteUrl"
+              placeholder="VD: https://ecofashion.com"
+              value={form.websiteUrl}
+              onChange={handleChange}
+              error={!!errors.websiteUrl}
+              disabled={isLoading}
+            />
+            {errors.websiteUrl && <p className="mt-1 text-xs font-medium text-red-500">{errors.websiteUrl}</p>}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="addressLine">Địa chỉ (Tùy chọn)</Label>
+            <Input
+              id="addressLine"
+              name="addressLine"
+              placeholder="VD: 123 Nguyễn Văn Cừ, Q5, TP.HCM"
+              value={form.addressLine}
+              onChange={handleChange}
+              error={!!errors.addressLine}
+              disabled={isLoading}
+            />
+            {errors.addressLine && <p className="mt-1 text-xs font-medium text-red-500">{errors.addressLine}</p>}
           </div>
 
           <button
