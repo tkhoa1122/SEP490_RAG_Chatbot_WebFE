@@ -117,7 +117,7 @@ export function ProductDataTable({ tenantId, onEdit, refreshTrigger }: ProductDa
               </TableRow>
             ) : (
               products.map((p: any) => {
-                const idStr = String(p.externalId || p.id || p.product_id || "N/A");
+                const idStr = String(p.id || p.product_id || p.externalId || "N/A");
                 const shortId = idStr.includes("-") ? idStr.split("-")[0] : idStr;
                 const name = p.name || p.p_name || "Không tên";
                 const imageUrl = (p.images && p.images.length > 0) ? p.images[0] : (p.imageUrl || p.image_url || p.p_image_url);

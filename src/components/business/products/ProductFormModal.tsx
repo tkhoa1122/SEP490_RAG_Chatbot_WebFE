@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { ProductDTO, ProductCreateCommand } from "@/infrastructure/dto/ProductDTO";
 import { productAPI } from "@/infrastructure/api/productAPI";
-import { toast } from "react-hot-toast";
+import { toast } from "sonner";
 
 interface ProductFormModalProps {
   tenantId: string;
@@ -85,6 +85,12 @@ export function ProductFormModal({ tenantId, isOpen, onClose, onSuccess, product
       const metadataLines = formData.metadataStr.split('\n').map(l => l.trim()).filter(l => l.length > 0);
       const hasInvalidMetadata = metadataLines.some(line => !line.includes(':'));
       
+      if (!formData.name.trim()) {
+        toast.error("Vui lòng nhập tên sản phẩm");
+        setLoading(false);
+        return;
+      }
+
       if (hasInvalidMetadata) {
         toast.error("Vui lòng nhập Metadata đúng định dạng 'Tên: Giá trị'. Dòng không có dấu hai chấm (:) sẽ bị lỗi.");
         setLoading(false);
@@ -103,10 +109,12 @@ export function ProductFormModal({ tenantId, isOpen, onClose, onSuccess, product
         return;
       }
 
-      const urlRegex = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i;
+      // Chỉ kiểm tra bắt đầu bằng http:// hoặc https://
+      const urlRegex = /^https?:\/\/.+/i;
 
-      if (formData.externalProductUrl && !urlRegex.test(formData.externalProductUrl)) {
-        toast.error("URL Sản phẩm không hợp lệ");
+      const trimmedUrl = formData.externalProductUrl.trim();
+      if (trimmedUrl && !urlRegex.test(trimmedUrl)) {
+        toast.error("URL Sản phẩm không hợp lệ. Vui lòng nhập đầy đủ bắt đầu bằng http:// hoặc https://");
         setLoading(false);
         return;
       }
@@ -114,7 +122,7 @@ export function ProductFormModal({ tenantId, isOpen, onClose, onSuccess, product
       const imageList = formData.images ? formData.images.split(",").map(url => url.trim()).filter(url => url !== "") : [];
       const invalidImages = imageList.filter(url => !urlRegex.test(url));
       if (invalidImages.length > 0) {
-        toast.error("Một hoặc nhiều URL Hình ảnh không hợp lệ");
+        toast.error(`URL hình ảnh không hợp lệ: "${invalidImages[0]}". Vui lòng nhập URL bắt đầu bằng https://`);
         setLoading(false);
         return;
       }
@@ -129,21 +137,23 @@ export function ProductFormModal({ tenantId, isOpen, onClose, onSuccess, product
 
       // Map sang ProductCreateCommand (External API schema)
       const payload: ProductCreateCommand = {
-        externalId: formData.externalId || null,
-        name: formData.name,
-        description: formData.description,
-        externalProductUrl: formData.externalProductUrl || null,
+        externalId: formData.externalId.trim() || null,
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        externalProductUrl: trimmedUrl || null,
         price: formData.price,
-        currency: formData.currency,
-        brand: formData.brand || null,
-        category: formData.category || null,
+        currency: formData.currency.trim() || "VND",
+        brand: formData.brand.trim() || null,
+        category: formData.category.trim() || null,
         stockQuantity: formData.stockQuantity,
         images: imageList.length > 0 ? imageList : null,
         metadata: Object.keys(metadataRecord).length > 0 ? metadataRecord : null,
       };
 
-      if (isEdit && (product?.externalId || product?.id || product?.product_id)) {
-        await productAPI.updateProduct(String(product?.externalId || product?.id || product?.product_id), payload);
+      if (isEdit && (product?.id || product?.product_id || product?.externalId)) {
+        // Dùng internal id (MongoDB ObjectId) để gọi PUT, không dùng externalId
+        const internalId = String(product?.id || product?.product_id || product?.externalId);
+        await productAPI.updateProduct(internalId, payload);
         toast.success("Cập nhật sản phẩm thành công");
       } else {
         await productAPI.createProduct(payload);
@@ -173,7 +183,7 @@ export function ProductFormModal({ tenantId, isOpen, onClose, onSuccess, product
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 py-4 max-h-[70vh] overflow-y-auto px-1 custom-scrollbar">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4 py-4 max-h-[70vh] overflow-y-auto px-1 custom-scrollbar">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Mã sản phẩm (External ID)</label>
