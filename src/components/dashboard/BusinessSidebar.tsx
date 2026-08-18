@@ -81,7 +81,7 @@ const NAV_ITEMS: NavItem[] = [
     label: "Cài đặt",
     href: (t) => `/${t}/business/settings`,
     icon: Settings,
-    allowedRoles: ["BUSINESS_OWNER"],
+    // CT cũng có thể vào để đổi mật khẩu + thông tin cá nhân
   },
 ];
 

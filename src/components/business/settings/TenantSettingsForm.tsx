@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { businessAPI, type UpdateBusinessCommand } from "@/infrastructure/api/businessAPI";
-import { mainAuthAPI } from "@/infrastructure/api/mainAuthAPI";
+import { mainAuthAPI, getRoleFromCookie } from "@/infrastructure/api/mainAuthAPI";
 import { cn } from "@/lib/utils";
 
 // ── Form Types ────────────────────────────────────────────────────────────────
@@ -38,6 +38,7 @@ export function TenantSettingsForm() {
   const [showNewPw, setShowNewPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [ownerInfo, setOwnerInfo] = useState<{ email: string; name: string } | null>(null);
+  const isBO = getRoleFromCookie() === "BUSINESS_OWNER";
 
   // Business form
   const { register: regBiz, handleSubmit: handleBiz, reset: resetBiz, formState: { errors: errBiz, isDirty: isDirtyBiz } } =
@@ -170,38 +171,41 @@ export function TenantSettingsForm() {
   return (
     <div className="space-y-8">
 
-      {/* ── Card 1: Hồ sơ doanh nghiệp ──────────────────────────────────── */}
-      <Card className="border-border shadow-sm overflow-hidden">
-        <CardHeader className="border-b bg-muted/20 pb-5">
-          <CardTitle className="flex items-center gap-2 text-xl">
-            <Building2 className="h-5 w-5 text-primary" />
-            Hồ sơ doanh nghiệp
-          </CardTitle>
-          <CardDescription>
-            Cập nhật thông tin hiển thị của cửa hàng trên widget chatbot.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-8 pb-8">
-          <form onSubmit={handleBiz(onSubmitBiz)} className="space-y-8">
-            <div className="grid gap-8 md:grid-cols-2">
-              <div className="space-y-6">
-                {field("Tên doanh nghiệp / Cửa hàng", "businessName", Building, "VD: Eco Fashion", true)}
-                {field("Hotline hỗ trợ", "hotLine", Phone, "VD: 0901234567")}
+      {/* ── Card 1: Hồ sơ doanh nghiệp — chỉ hiện với BUSINESS_OWNER ─────── */}
+      {isBO && (
+        <Card className="border-border shadow-sm overflow-hidden">
+          <CardHeader className="border-b bg-muted/20 pb-5">
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <Building2 className="h-5 w-5 text-primary" />
+              Hồ sơ doanh nghiệp
+            </CardTitle>
+            <CardDescription>
+              Cập nhật thông tin hiển thị của cửa hàng trên widget chatbot.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-8 pb-8">
+            <form onSubmit={handleBiz(onSubmitBiz)} className="space-y-8">
+              <div className="grid gap-8 md:grid-cols-2">
+                <div className="space-y-6">
+                  {field("Tên doanh nghiệp / Cửa hàng", "businessName", Building, "VD: Eco Fashion", true)}
+                  {field("Hotline hỗ trợ", "hotLine", Phone, "VD: 0901234567")}
+                </div>
+                <div className="space-y-6">
+                  {field("Website", "websiteUrl", Globe, "VD: https://ecofashion.vn", true)}
+                  {field("Địa chỉ", "addressLine", MapPin, "VD: 123 Đường ABC, Quận 1, TP.HCM")}
+                </div>
               </div>
-              <div className="space-y-6">
-                {field("Website", "websiteUrl", Globe, "VD: https://ecofashion.vn", true)}
-                {field("Địa chỉ", "addressLine", MapPin, "VD: 123 Đường ABC, Quận 1, TP.HCM")}
+              <div className="flex justify-end pt-4">
+                <Button type="submit" disabled={!isDirtyBiz || saving} className="gap-2 min-w-32 shadow-sm">
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {saving ? "Đang lưu..." : "Lưu thay đổi"}
+                </Button>
               </div>
-            </div>
-            <div className="flex justify-end pt-4">
-              <Button type="submit" disabled={!isDirtyBiz || saving} className="gap-2 min-w-32 shadow-sm">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                {saving ? "Đang lưu..." : "Lưu thay đổi"}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
 
       {/* ── Card 2: Thông tin cá nhân ─────────────────────────────────────── */}
       <Card className="border-border shadow-sm overflow-hidden">

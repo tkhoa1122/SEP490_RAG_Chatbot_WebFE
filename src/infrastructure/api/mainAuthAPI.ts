@@ -173,7 +173,11 @@ export const mainAuthAPI = {
    * PUT /api/v1/auth/change-password
    */
   changePassword: async (body: { currentPassword: string; newPassword: string; confirmNewPassword: string }): Promise<MainApiWrapper<null>> => {
-    const { data } = await mainAxiosClient.put<MainApiWrapper<null>>("/auth/change-password", body);
+    const { data } = await mainAxiosClient.put<MainApiWrapper<null>>("/auth/change-password", {
+      currentPassword: body.currentPassword,
+      newPassword: body.newPassword,
+      confirmPassword: body.confirmNewPassword, // BE dùng "confirmPassword", FE form dùng "confirmNewPassword"
+    });
     return data;
   },
 
