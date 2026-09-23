@@ -59,6 +59,10 @@ export default function ChatbotConfigPage() {
         systemPrompt: config.systemPrompt,
         fallBackMessage: config.fallBackMessage,
         maxOutPutToken: config.maxOutPutToken,
+        lowPriceMaxLimit: config.lowPriceMaxLimit,
+        mediumPriceMinLimit: config.mediumPriceMinLimit,
+        mediumPriceMaxLimit: config.mediumPriceMaxLimit,
+        highPriceMinLimit: config.highPriceMinLimit,
       };
       await businessAPI.updateConfig(payload);
       toast.success("Đã lưu cấu hình Chatbot thành công!");
@@ -184,7 +188,7 @@ export default function ChatbotConfigPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="hidden">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <SlidersHorizontal className="h-5 w-5 text-primary" />
@@ -278,6 +282,52 @@ export default function ChatbotConfigPage() {
                 <p className="text-[11px] text-muted-foreground mt-1">
                   Giá trị từ 0.0 đến 1.0 (Có thể nhập số thập phân bằng dấu phẩy)
                 </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <SlidersHorizontal className="h-5 w-5 text-primary" />
+                Cấu hình khoảng giá (VND)
+              </CardTitle>
+              <CardDescription>Giúp Chatbot nhận diện mức giá Rẻ / Vừa / Đắt</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Giá Rẻ Tối Đa</Label>
+                  <Input 
+                    type="number" 
+                    value={config.lowPriceMaxLimit ?? ""} 
+                    onChange={(e) => handleChange("lowPriceMaxLimit", e.target.value ? parseFloat(e.target.value) : null)} 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Giá Đắt Tối Thiểu</Label>
+                  <Input 
+                    type="number" 
+                    value={config.highPriceMinLimit ?? ""} 
+                    onChange={(e) => handleChange("highPriceMinLimit", e.target.value ? parseFloat(e.target.value) : null)} 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Giá Vừa Tối Thiểu</Label>
+                  <Input 
+                    type="number" 
+                    value={config.mediumPriceMinLimit ?? ""} 
+                    onChange={(e) => handleChange("mediumPriceMinLimit", e.target.value ? parseFloat(e.target.value) : null)} 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Giá Vừa Tối Đa</Label>
+                  <Input 
+                    type="number" 
+                    value={config.mediumPriceMaxLimit ?? ""} 
+                    onChange={(e) => handleChange("mediumPriceMaxLimit", e.target.value ? parseFloat(e.target.value) : null)} 
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>

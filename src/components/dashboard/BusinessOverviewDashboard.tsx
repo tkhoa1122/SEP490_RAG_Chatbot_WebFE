@@ -167,20 +167,11 @@ export function BusinessOverviewDashboard({ tenantId }: { tenantId: string }) {
             </div>
           </CardContent>
         </Card>
+      </div>
 
-        {/* Row 2: RAG Quality Metrics */}
-        <Card className="bg-emerald-50/50 border-emerald-100">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-emerald-800 flex items-center gap-1">Tỷ lệ chính xác (Hit Rate)</CardTitle>
-            <Target className="h-4 w-4 text-emerald-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-emerald-700">{Number(((data?.averageSearchHitRatePercentage || 0) * 100).toFixed(2))}%</div>
-            <p className="text-xs text-emerald-600/80 mt-1">
-              Truy xuất đúng sản phẩm/tài liệu
-            </p>
-          </CardContent>
-        </Card>
+      {/* Row 2: Performance & Conversion - 2 Cards */}
+      <div className="grid gap-4 md:grid-cols-2">
+
 
         <Card className="bg-blue-50/50 border-blue-100">
           <CardHeader className="flex flex-row items-center justify-between pb-2">

@@ -6,6 +6,113 @@
         "version": "v1"
     },
     "paths": {
+        "/api/v1/activity-logs": {
+            "get": {
+                "tags": [
+                    "ActivityLog"
+                ],
+                "parameters": [
+                    {
+                        "name": "Filter.BusinessId",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "Filter.Keyword",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "Filter.ActorId",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "Filter.Action",
+                        "in": "query",
+                        "schema": {
+                            "$ref": "#/components/schemas/ActionLogEnums"
+                        }
+                    },
+                    {
+                        "name": "Filter.TargetType",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "Filter.TargetId",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "Filter.Status",
+                        "in": "query",
+                        "schema": {
+                            "$ref": "#/components/schemas/StatusLogEnums"
+                        }
+                    },
+                    {
+                        "name": "Filter.Severity",
+                        "in": "query",
+                        "schema": {
+                            "$ref": "#/components/schemas/SeverityLogEnums"
+                        }
+                    },
+                    {
+                        "name": "Filter.FromDate",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "Filter.ToDate",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "Filter.PageIndex",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "Filter.PageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
         "/api/v1/api-keys": {
             "post": {
                 "tags": [
@@ -805,6 +912,195 @@
                         }
                     }
                 ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/category-attributes/drafts": {
+            "post": {
+                "tags": [
+                    "CategoryAttributeControllers"
+                ],
+                "summary": "Creates a new draft version of a category attribute schema.",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateDraftCommand"
+                            }
+                        },
+                        "text/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateDraftCommand"
+                            }
+                        },
+                        "application/*+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateDraftCommand"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/category-attributes": {
+            "get": {
+                "tags": [
+                    "CategoryAttributeControllers"
+                ],
+                "summary": "Gets the highest schema version of every category.",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/category-attributes/activate": {
+            "put": {
+                "tags": [
+                    "CategoryAttributeControllers"
+                ],
+                "summary": "Activates a category attribute schema version.",
+                "parameters": [
+                    {
+                        "name": "category",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "version",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/category-attributes/pending-approval": {
+            "get": {
+                "tags": [
+                    "CategoryAttributeControllers"
+                ],
+                "summary": "Gets category attribute schema versions pending approval.",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/category-attributes/history": {
+            "get": {
+                "tags": [
+                    "CategoryAttributeControllers"
+                ],
+                "summary": "Gets all schema versions for a category.",
+                "parameters": [
+                    {
+                        "name": "category",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/category-attributes/attributes/{attributeKey}": {
+            "put": {
+                "tags": [
+                    "CategoryAttributeControllers"
+                ],
+                "summary": "Updates an attribute definition without changing its data type.",
+                "parameters": [
+                    {
+                        "name": "attributeKey",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "category",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateAttributeDefinitionCommand"
+                            }
+                        },
+                        "text/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateAttributeDefinitionCommand"
+                            }
+                        },
+                        "application/*+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateAttributeDefinitionCommand"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "OK"
@@ -2663,6 +2959,61 @@
     },
     "components": {
         "schemas": {
+            "ActionLogEnums": {
+                "enum": [
+                    "Create",
+                    "Update",
+                    "Delete",
+                    "Login",
+                    "Logout",
+                    "PasswordChange",
+                    "PasswordReset",
+                    "PermissionChange",
+                    "RoleChange",
+                    "DataExport",
+                    "DataImport",
+                    "View"
+                ],
+                "type": "string"
+            },
+            "AttributeDataType": {
+                "enum": [
+                    "Keyword",
+                    "Number",
+                    "Boolean"
+                ],
+                "type": "string"
+            },
+            "AttributeDefinition": {
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "displayName": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "dataType": {
+                        "$ref": "#/components/schemas/AttributeDataType"
+                    },
+                    "isFilterable": {
+                        "type": "boolean"
+                    },
+                    "isStrict": {
+                        "type": "boolean"
+                    },
+                    "allowedValues": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false
+            },
             "BusinessEnums": {
                 "enum": [
                     "REJECTED",
@@ -2727,6 +3078,23 @@
                     "Html"
                 ],
                 "type": "string"
+            },
+            "CreateDraftCommand": {
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "attributes": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AttributeDefinition"
+                        },
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false
             },
             "CreateNewKeyCommand": {
                 "type": "object",
@@ -3084,6 +3452,15 @@
                 ],
                 "type": "string"
             },
+            "SeverityLogEnums": {
+                "enum": [
+                    "Info",
+                    "Warning",
+                    "Error",
+                    "Critical"
+                ],
+                "type": "string"
+            },
             "SourceTypeEnum": {
                 "enum": [
                     "Chat",
@@ -3096,6 +3473,13 @@
                 "enum": [
                     "Active",
                     "Inactive"
+                ],
+                "type": "string"
+            },
+            "StatusLogEnums": {
+                "enum": [
+                    "Success",
+                    "Failure"
                 ],
                 "type": "string"
             },
@@ -3191,6 +3575,29 @@
                 ],
                 "type": "string"
             },
+            "UpdateAttributeDefinitionCommand": {
+                "type": "object",
+                "properties": {
+                    "displayName": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "isFilterable": {
+                        "type": "boolean"
+                    },
+                    "isStrict": {
+                        "type": "boolean"
+                    },
+                    "allowedValues": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false
+            },
             "UpdateBusinessCommand": {
                 "type": "object",
                 "properties": {
@@ -3242,6 +3649,26 @@
                     "maxOutPutToken": {
                         "type": "integer",
                         "format": "int32",
+                        "nullable": true
+                    },
+                    "lowPriceMaxLimit": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    },
+                    "mediumPriceMinLimit": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    },
+                    "mediumPriceMaxLimit": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    },
+                    "highPriceMinLimit": {
+                        "type": "number",
+                        "format": "double",
                         "nullable": true
                     }
                 },

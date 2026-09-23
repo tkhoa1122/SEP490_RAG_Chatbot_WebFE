@@ -142,6 +142,102 @@
                 ]
             }
         },
+        "/api/v1/chat/conversations/{conversationId}/orders": {
+            "post": {
+                "tags": [
+                    "Conversations"
+                ],
+                "summary": "Register a conversation order",
+                "description": "Registers the external order-to-conversation mapping before checkout",
+                "parameters": [
+                    {
+                        "name": "conversationId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RegisterConversationOrderRequest"
+                            }
+                        },
+                        "text/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RegisterConversationOrderRequest"
+                            }
+                        },
+                        "application/*+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RegisterConversationOrderRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKey": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/chat/conversations/orders/{externalOrderId}/status": {
+            "patch": {
+                "tags": [
+                    "Conversations"
+                ],
+                "summary": "Update a conversation order status",
+                "description": "Updates an order status by the external order ID previously registered for the current business",
+                "parameters": [
+                    {
+                        "name": "externalOrderId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateConversationOrderStatusRequest"
+                            }
+                        },
+                        "text/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateConversationOrderStatusRequest"
+                            }
+                        },
+                        "application/*+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateConversationOrderStatusRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "ApiKey": []
+                    }
+                ]
+            }
+        },
         "/api/v1/chat/conversations": {
             "get": {
                 "tags": [
@@ -433,6 +529,16 @@
     },
     "components": {
         "schemas": {
+            "ConversationOrderEventStatus": {
+                "enum": [
+                    "None",
+                    "Success",
+                    "Failed",
+                    "Paid",
+                    "OrderCreated"
+                ],
+                "type": "string"
+            },
             "ProductCreateCommand": {
                 "type": "object",
                 "properties": {
@@ -484,6 +590,29 @@
                         "additionalProperties": {
                             "type": "string"
                         },
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false
+            },
+            "ProductOrderSnapshotRequest": {
+                "type": "object",
+                "properties": {
+                    "externalProductId": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "productName": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "price": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "quantity": {
+                        "type": "integer",
+                        "format": "int32",
                         "nullable": true
                     }
                 },
@@ -556,6 +685,27 @@
                 },
                 "additionalProperties": false
             },
+            "RegisterConversationOrderRequest": {
+                "type": "object",
+                "properties": {
+                    "externalOrderId": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "amount": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "products": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ProductOrderSnapshotRequest"
+                        },
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false
+            },
             "SendMessageCommand": {
                 "type": "object",
                 "properties": {
@@ -566,6 +716,15 @@
                     "externalCustomerId": {
                         "type": "string",
                         "nullable": true
+                    }
+                },
+                "additionalProperties": false
+            },
+            "UpdateConversationOrderStatusRequest": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "$ref": "#/components/schemas/ConversationOrderEventStatus"
                     }
                 },
                 "additionalProperties": false

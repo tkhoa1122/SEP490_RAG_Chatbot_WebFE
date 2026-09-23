@@ -68,6 +68,10 @@ export interface BusinessConfig {
   systemPrompt?: string | null;
   fallBackMessage?: string | null;
   maxOutPutToken?: number | null;
+  lowPriceMaxLimit?: number | null;
+  mediumPriceMinLimit?: number | null;
+  mediumPriceMaxLimit?: number | null;
+  highPriceMinLimit?: number | null;
 }
 
 export interface UpdateBusinessConfigCommand {
@@ -77,6 +81,10 @@ export interface UpdateBusinessConfigCommand {
   systemPrompt?: string | null;
   fallBackMessage?: string | null;
   maxOutPutToken?: number | null;
+  lowPriceMaxLimit?: number | null;
+  mediumPriceMinLimit?: number | null;
+  mediumPriceMaxLimit?: number | null;
+  highPriceMinLimit?: number | null;
 }
 
 // ── Catalog Team ───────────────────────────────────────────────────────────────
