@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/storefront/api/v1/:path*",
-        destination: `${process.env.STOREFRONT_API_URL || "https://shoppefake-yuky.onrender.com/api/v1"}/:path*`, // Proxy Storefront API
+        destination: `${process.env.STOREFRONT_API_URL || "https://shoppefake-545163055657.asia-southeast1.run.app/api/v1"}/:path*`, // Proxy Storefront API
       },
     ];
   },

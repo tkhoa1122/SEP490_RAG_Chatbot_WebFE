@@ -63,16 +63,8 @@ const NAV_ITEMS: NavItem[] = [
     icon: CreditCard,
     allowedRoles: ["BUSINESS_OWNER"],
   },
-  {
-    label: "Doanh thu",
-    href: (t) => `/${t}/business/analytics`,
-    icon: BarChart,
-  },
-  {
-    label: "Hiệu suất AI",
-    href: (t) => `/${t}/business/performance`,
-    icon: Activity,
-  },
+
+
   {
     label: "API Keys",
     href: (t) => `/${t}/business/api-keys`,
@@ -89,7 +81,7 @@ const NAV_ITEMS: NavItem[] = [
     label: "Cài đặt",
     href: (t) => `/${t}/business/settings`,
     icon: Settings,
-    allowedRoles: ["BUSINESS_OWNER"],
+    // CT cũng có thể vào để đổi mật khẩu + thông tin cá nhân
   },
 ];
 

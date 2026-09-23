@@ -5,8 +5,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from "@/components/ui/button";
 import { UploadCloud, FileSpreadsheet, CheckCircle2, Loader2, AlertCircle, X } from "lucide-react";
 import { toast } from "react-hot-toast";
-import Papa from "papaparse";
-import { read, utils } from "xlsx";
 import { productAPI } from "@/infrastructure/api/productAPI";
 
 interface ImportProductsModalProps {
@@ -29,11 +27,11 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
     if (e.target.files && e.target.files.length > 0) {
       const selectedFile = e.target.files[0];
       // Basic validation for extension
-      const validExtensions = [".csv", ".xls", ".xlsx"];
+      const validExtensions = [".csv", ".xls", ".xlsx", ".json"];
       const isValid = validExtensions.some(ext => selectedFile.name.toLowerCase().endsWith(ext));
       
       if (!isValid) {
-        toast.error("Vui lòng tải lên file CSV hoặc Excel");
+        toast.error("Vui lòng tải lên file CSV, Excel hoặc JSON");
         return;
       }
       
@@ -54,11 +52,11 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
     e.stopPropagation();
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const droppedFile = e.dataTransfer.files[0];
-      const validExtensions = [".csv", ".xls", ".xlsx"];
+      const validExtensions = [".csv", ".xls", ".xlsx", ".json"];
       const isValid = validExtensions.some(ext => droppedFile.name.toLowerCase().endsWith(ext));
       
       if (!isValid) {
-        toast.error("Vui lòng tải lên file CSV hoặc Excel");
+        toast.error("Vui lòng tải lên file CSV, Excel hoặc JSON");
         return;
       }
       
@@ -81,119 +79,31 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
 
   const handleImport = async () => {
     if (!file) return;
-    
-    setStatus("validating");
-    setProgress(10);
-    
-    const processData = async (data: Record<string, string>[]) => {
-        if (data.length === 0) {
-          const msg = "File trống hoặc không đúng định dạng (không tìm thấy dòng dữ liệu nào).";
-          setErrorMessage(msg);
-          toast.error(msg);
-          setStatus("error");
-          return;
-        }
 
-        setStatus("uploading");
-        setProgress(30);
+    setStatus("uploading");
+    setProgress(30);
 
-        try {
-          let successCount = 0;
-          let failCount = 0;
-          
-          for (let i = 0; i < data.length; i++) {
-            const row = data[i];
-            
-            // Map row to ProductCreateCommand
-            // Hỗ trợ cả tiếng Anh lẫn tiếng Việt
-            const payload = {
-              name: row.Name || row["Tên"] || row.name || null,
-              description: row.Description || row["Mô tả"] || row.description || null,
-              price: parseFloat(row.Price || row["Giá"] || row.price || "0"),
-              stockQuantity: parseInt(row.Stock || row["Tồn Kho"] || row.stock || row["Số lượng"] || "0", 10),
-              category: row.Category || row["Danh mục"] || row.category || null,
-            };
+    try {
+      await productAPI.importProducts(file);
+      setStatus("success");
+      setProgress(100);
+      toast.success("Import dữ liệu sản phẩm thành công!");
 
-            try {
-              await productAPI.createProduct(payload);
-              successCount++;
-            } catch (err) {
-              console.error("Error importing row", row, err);
-              failCount++;
-            }
-            
-            // Update progress
-            const currentProgress = 30 + Math.floor(((i + 1) / data.length) * 65);
-            setProgress(currentProgress);
-            
-            // Change status to indexing/processing around 70%
-            if (currentProgress > 70 && status !== "indexing") {
-              setStatus("indexing");
-            }
-          }
-
-          setStatus("success");
-          setProgress(100);
-          
-          if (failCount > 0) {
-            toast.success(`Import hoàn tất: ${successCount} thành công, ${failCount} thất bại.`);
-          } else {
-            toast.success(`Import hoàn tất ${successCount} sản phẩm thành công!`);
-          }
-          
-          setTimeout(() => {
-            onSuccess();
-            onClose();
-            clearFile();
-          }, 2000);
-          
-        } catch (error: any) {
-          const msg = error?.message || "Đã xảy ra lỗi không xác định khi gọi API.";
-          setErrorMessage(msg);
-          toast.error("Đã xảy ra lỗi trong quá trình import.");
-          setStatus("error");
-        }
-    };
-
-    const isExcel = file.name.toLowerCase().endsWith(".xls") || file.name.toLowerCase().endsWith(".xlsx");
-    
-    if (isExcel) {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          const buffer = e.target?.result as ArrayBuffer;
-          const data = new Uint8Array(buffer);
-          const workbook = read(data, { type: "array" });
-          
-          if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
-            throw new Error("File Excel không có sheet nào.");
-          }
-          
-          const firstSheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[firstSheetName];
-          const jsonData = utils.sheet_to_json(worksheet, { defval: "" }) as Record<string, string>[];
-          await processData(jsonData);
-        } catch (error: any) {
-          console.error("Excel parsing error:", error);
-          const msg = error?.message || "Lỗi không xác định khi đọc file Excel.";
-          setErrorMessage(`Lỗi đọc file Excel: ${msg}`);
-          toast.error("Lỗi đọc file Excel. Vui lòng kiểm tra lại định dạng file.");
-          setStatus("error");
-        }
-      };
-      reader.readAsArrayBuffer(file);
-    } else {
-      Papa.parse(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: async (results) => {
-          await processData(results.data as Record<string, string>[]);
-        },
-        error: (error) => {
-          toast.error(`Lỗi đọc file CSV: ${error.message}`);
-          setStatus("error");
-        }
-      });
+      setTimeout(() => {
+        onSuccess();
+        onClose();
+        clearFile();
+      }, 1500);
+    } catch (error: any) {
+      console.error("Import error:", error);
+      let msg = error?.response?.data?.message || error?.response?.data?.title || (typeof error?.response?.data === "string" ? error.response.data : null) || error?.message || "Đã xảy ra lỗi khi tải file lên.";
+      if (error?.response?.data?.errors && typeof error.response.data.errors === "object") {
+        const errDetails = Object.values(error.response.data.errors).flat().join(" ");
+        if (errDetails) msg = `${msg} (${errDetails})`;
+      }
+      setErrorMessage(msg);
+      toast.error(msg);
+      setStatus("error");
     }
   };
 
@@ -227,14 +137,12 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
             >
               <UploadCloud className="h-10 w-10 text-muted-foreground mb-4" />
               <p className="text-sm font-medium mb-1">Nhấn để tải lên hoặc kéo thả file vào đây</p>
-              <p className="text-xs text-muted-foreground">Hỗ trợ: .csv, .xls, .xlsx (Tối đa 5MB)</p>
+              <p className="text-xs text-muted-foreground">Hỗ trợ: .csv, .xls, .xlsx, .json (Tối đa 5MB)</p>
               
               <div className="mt-4 pt-4 border-t w-full">
                 <Button variant="link" size="sm" className="h-auto p-0" onClick={(e) => { e.stopPropagation(); toast("Tính năng tải template đang phát triển"); }}>
                   Tải file template mẫu (.csv)
                 </Button>
-              </div>
-
               </div>
             </div>
           ) : (
@@ -296,7 +204,7 @@ export function ImportProductsModal({ tenantId, isOpen, onClose, onSuccess }: Im
             type="file" 
             ref={fileInputRef} 
             className="hidden" 
-            accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" 
+            accept=".csv, .json, application/json, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" 
             onChange={handleFileChange}
           />
         </div>

@@ -11,17 +11,21 @@ import {
   CheckCircle2,
   AlertCircle,
   ExternalLink,
+  XCircle,
+  FileText,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { paymentAPI, subscriptionAPI, type Payment, type Subscription, type PaymentStatus } from "@/infrastructure/api/subscriptionAPI";
-import { businessAPI, type Business } from "@/infrastructure/api/businessAPI";
+import { businessAPI, type Business, type BusinessProfileDto } from "@/infrastructure/api/businessAPI";
+import { UsageLogsClient } from "./UsageLogsClient";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -32,34 +36,51 @@ const PAYMENT_STATUS_MAP: Record<PaymentStatus, { label: string; cls: string }> 
   Cancelled: { label: "Đã hủy", cls: "bg-slate-500/10 text-slate-500 border-slate-400/20" },
 };
 
-function QuotaBar({ label, used, total, icon: Icon, color }: {
+function QuotaBar({ label, used, total, icon: Icon, color, hideProgress = false }: {
   label: string;
-  used: number;
-  total: number;
-  icon: React.ElementType;
+  used?: number;
+  total?: number;
+  icon: any;
   color: string;
+  hideProgress?: boolean;
 }) {
-  const pct = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
+  const isUnlimited = total == null || total === -1 || total === 0;
+  const safeUsed = used || 0;
+  const safeTotal = total || 0;
+  
+  // Calculate remaining logic
+  const remaining = Math.max(safeTotal - safeUsed, 0);
+  const remainingPct = isUnlimited ? 100 : Math.min(Math.round((remaining / safeTotal) * 100), 100);
+
+  // Determine dynamic bar color based on remaining percentage
+  let barColor = "bg-emerald-500";
+  if (!isUnlimited) {
+    if (remainingPct <= 20) barColor = "bg-red-500";
+    else if (remainingPct <= 50) barColor = "bg-amber-500";
+  }
+
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       <div className="flex items-center justify-between text-sm">
-        <div className="flex items-center gap-1.5 font-medium text-foreground">
+        <div className="flex items-center gap-2 font-medium text-foreground">
           <Icon className={cn("h-4 w-4", color)} />
-          {label}
+          <span>{label}</span>
         </div>
-        <span className={cn("font-semibold", pct >= 90 ? "text-red-600" : pct >= 70 ? "text-amber-600" : "text-foreground")}>
-          {pct}%
+        <span className="font-mono text-xs text-muted-foreground">
+          {hideProgress 
+            ? (isUnlimited ? "Không giới hạn" : `Tối đa ${safeTotal.toLocaleString("vi-VN")}`) 
+            : `${safeUsed.toLocaleString("vi-VN")} / ${isUnlimited ? "Không giới hạn" : safeTotal.toLocaleString("vi-VN")}`
+          }
         </span>
       </div>
-      <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
-        <div
-          className={cn("h-full rounded-full transition-all", pct >= 90 ? "bg-red-500" : pct >= 70 ? "bg-amber-500" : "bg-emerald-500")}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <p className="text-right text-xs text-muted-foreground">
-        Đã dùng {used.toLocaleString("vi-VN")} / {total.toLocaleString("vi-VN")}
-      </p>
+      {!hideProgress && (
+        <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+          <div
+            className={cn("h-full transition-all duration-300", barColor)}
+            style={{ width: `${remainingPct}%` }}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -73,7 +94,11 @@ export function BillingManager() {
   const [activePayment, setActivePayment] = useState<Payment | null>(null);
   const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState<string | null>(null);
-  const [businessProfile, setBusinessProfile] = useState<Business | null>(null);
+  const [isCancelling, setIsCancelling] = useState<string | null>(null);
+  const [businessProfile, setBusinessProfile] = useState<BusinessProfileDto | null>(null);
+  const [detailPayment, setDetailPayment] = useState<Payment | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [loadingDetail, setLoadingDetail] = useState(false);
   
   const params = useParams();
   const tenantId = params?.tenant_id as string;
@@ -86,12 +111,14 @@ export function BillingManager() {
       setLoading(true);
       try {
         const [payRes, plansRes, profileRes] = await Promise.all([
-          paymentAPI.getAll({ "Filter.PageSize": 50 }),
+          paymentAPI.getUserPayments({ "Filter.PageSize": 50, "Filter.CreateAtOrderBy": "desc" } as any),
           subscriptionAPI.getAll({ "Filter.PageSize": 50 }),
           businessAPI.getProfile().catch(() => null)
         ]);
         
         const payList = payRes.data?.items ?? [];
+        // Đảm bảo luôn sort giảm dần theo createdAt trên FE phòng trường hợp BE trả sai
+        payList.sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
         setPayments(payList);
         setPlans(plansRes.data?.items ?? []);
         if (profileRes?.data) setBusinessProfile(profileRes.data);
@@ -105,6 +132,19 @@ export function BillingManager() {
           } catch (e) {
              setActivePayment(completed);
           }
+        } else {
+          // Nếu chưa có giao dịch Completed nào (ví dụ doanh nghiệp dùng gói miễn phí Basic mặc định),
+          // tự động lấy gói cước từ businessProfile hoặc gói cước có giá = 0 / gói Basic để hiển thị "Đang hoạt động".
+          const profile: any = profileRes?.data;
+          const allPlans = plansRes.data?.items ?? [];
+          const defaultPlan = allPlans.find((p: any) => p.id === profile?.subscriptionPlanId || p.price === 0 || p.name?.toLowerCase().includes("basic")) || allPlans[0];
+          if (defaultPlan) {
+            setActivePayment({
+              subscriptionPlan: defaultPlan,
+              status: "Completed",
+              amount: defaultPlan.price || 0
+            } as any);
+          }
         }
       } catch (err: any) {
         toast.error("Không thể tải thông tin thanh toán");
@@ -117,16 +157,83 @@ export function BillingManager() {
 
   const activePlanData = activePayment ? (activePayment as any).subscriptionPlan as Subscription : null;
 
+  // Xem chi tiết đơn thanh toán
+  const handleViewDetail = async (payment: Payment) => {
+    if (!payment.orderCode) return;
+    setDetailPayment(payment);
+    setIsDetailOpen(true);
+    setLoadingDetail(true);
+    try {
+      const res = await paymentAPI.getByOrderCode(payment.orderCode);
+      if (res.data) setDetailPayment(res.data);
+    } catch (err) {
+      // Fallback to local data
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
+
+  // Hàm hủy đơn thanh toán đang xử lý (Pending)
+  const handleCancelPayment = async (payment: Payment) => {
+    if (!payment.orderCode) {
+      toast.error("Đơn này không có mã thanh toán (Order Code)");
+      return;
+    }
+    if (!window.confirm(`Bạn có chắc chắn muốn hủy đơn thanh toán #${payment.orderCode} (Đang xử lý) không?`)) {
+      return;
+    }
+    const targetId = payment.id || String(payment.orderCode);
+    setIsCancelling(targetId);
+    try {
+      await paymentAPI.cancelPayment(payment.orderCode);
+      toast.success(`Đã hủy giao dịch #${payment.orderCode} thành công! Bạn có thể chọn mua lại gói cước.`);
+      
+      // Load lại danh sách thanh toán
+      const payRes = await paymentAPI.getUserPayments({ "Filter.PageSize": 50 });
+      setPayments(payRes.data?.items ?? []);
+    } catch (err: any) {
+      console.error("Cancel payment error:", err);
+      const errMsg = err.response?.data?.message || err.response?.data?.title || err.message || "Không thể hủy đơn thanh toán này.";
+      toast.error("Lỗi khi hủy đơn", { description: errMsg });
+    } finally {
+      setIsCancelling(null);
+    }
+  };
+
   const handleSubscribe = async (plan: Subscription) => {
     if (!businessProfile?.id) {
       toast.error("Không tìm thấy thông tin doanh nghiệp (ID)");
       return;
     }
+
+    // Kiểm tra thông minh: Nếu doanh nghiệp đang có một đơn hàng Pending (Đang xử lý)
+    const pendingPayment = payments.find(p => p.status === "Pending");
+    if (pendingPayment && pendingPayment.orderCode) {
+      if (window.confirm(`Bạn đang có đơn hàng #${pendingPayment.orderCode} (Đang xử lý). Bạn có muốn tự động hủy đơn cũ này để tạo thanh toán mới cho gói ${plan.name} không?`)) {
+        try {
+          toast.loading("Đang hủy đơn thanh toán cũ...", { id: "cancel-old" });
+          await paymentAPI.cancelPayment(pendingPayment.orderCode);
+          toast.dismiss("cancel-old");
+          toast.success("Đã hủy đơn cũ thành công! Đang mở cổng thanh toán mới...");
+          // Cập nhật lại list
+          const payRes = await paymentAPI.getUserPayments({ "Filter.PageSize": 50 });
+          setPayments(payRes.data?.items ?? []);
+        } catch (e: any) {
+          toast.dismiss("cancel-old");
+          const errMsg = e.response?.data?.message || e.response?.data?.title || e.message;
+          toast.error("Không thể hủy đơn hàng cũ", { description: errMsg });
+          return;
+        }
+      } else {
+        return;
+      }
+    }
+
     setIsSubscribing(plan.id);
     try {
       const res = await paymentAPI.createPaymentLink({
         subscriptionPlanId: plan.id,
-        returnUrlDomain: window.location.href
+        returnUrlDomain: window.location.origin
       });
       
       // Handle various response wrappers (data, paymentUrl, checkoutUrl)
@@ -144,6 +251,38 @@ export function BillingManager() {
       console.error("Payment API Error:", err);
       let errMsg = err.response?.data?.message || err.response?.data?.title || err.message;
       if (err.response?.status === 402) errMsg = "Tài khoản cần nâng cấp hoặc thanh toán thất bại (402).";
+      
+      // Xử lý thông minh lỗi Lỗi 1: Nếu BE báo doanh nghiệp đã có gói cước này rồi
+      if (err.response?.status === 400 && typeof errMsg === "string" && errMsg.toLowerCase().includes("already has an active subscription")) {
+        toast.success("Gói cước này đang được kích hoạt cho doanh nghiệp của bạn!", {
+          description: "Hệ thống đã cập nhật hiển thị gói cước hiện tại."
+        });
+        setActivePayment({ subscriptionPlan: plan, status: "Completed", amount: plan.price } as any);
+        setIsPricingModalOpen(false);
+        return;
+      }
+
+      // Xử lý thông minh lỗi Lỗi 2: Nếu BE báo có đơn đang chờ xử lý (pending payment order exists)
+      if (err.response?.status === 400 && typeof errMsg === "string" && (errMsg.toLowerCase().includes("pending") || errMsg.toLowerCase().includes("processing") || errMsg.toLowerCase().includes("đang xử lý") || errMsg.toLowerCase().includes("already"))) {
+        const anyPending = payments.find(p => p.status === "Pending");
+        if (anyPending && anyPending.orderCode) {
+          if (window.confirm(`Hệ thống báo bạn đang có đơn hàng #${anyPending.orderCode} (Đang xử lý). Bạn có muốn tự động hủy đơn cũ này để tạo lại thanh toán mới không?`)) {
+            try {
+              toast.loading("Đang hủy đơn hàng cũ...", { id: "cancel-old-catch" });
+              await paymentAPI.cancelPayment(anyPending.orderCode);
+              toast.dismiss("cancel-old-catch");
+              toast.success("Đã hủy đơn cũ thành công! Vui lòng chọn lại gói cước.");
+              const payRes = await paymentAPI.getUserPayments({ "Filter.PageSize": 50 });
+              setPayments(payRes.data?.items ?? []);
+            } catch (e: any) {
+              toast.dismiss("cancel-old-catch");
+              toast.error("Không thể hủy đơn hàng cũ", { description: e?.message || "Lỗi khi hủy" });
+            }
+          }
+          return;
+        }
+      }
+
       if (err.response?.status === 400) errMsg = errMsg || "Dữ liệu không hợp lệ (400).";
       
       toast.error("Không thể khởi tạo thanh toán", {
@@ -155,8 +294,15 @@ export function BillingManager() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-6 md:grid-cols-12">
+    <>
+      <Tabs defaultValue="billing" className="w-full flex flex-col gap-6">
+        <TabsList>
+          <TabsTrigger value="billing">Gói cước & Thanh toán</TabsTrigger>
+          <TabsTrigger value="usage">Lịch sử tiêu hao</TabsTrigger>
+        </TabsList>
+
+      <TabsContent value="billing" className="mt-0 outline-none">
+        <div className="grid gap-6 md:grid-cols-12">
         {/* Active Plan & Quota Card */}
         <div className="md:col-span-5 lg:col-span-4">
           <Card className="h-full border-primary/20 bg-primary/5">
@@ -187,24 +333,25 @@ export function BillingManager() {
                     <div className="space-y-5">
                        <QuotaBar
                           label="Token AI"
-                          used={0}
-                          total={activePlanData.tokenLimit || 0}
+                          used={businessProfile?.businessQuota?.usedTokens || 0}
+                          total={businessProfile?.businessQuota?.tokenLimit || activePlanData.tokenLimit || 0}
                           icon={Zap}
                           color="text-violet-500"
                         />
                         <QuotaBar
                           label="Tin nhắn"
-                          used={0}
-                          total={activePlanData.messageLimit || 0}
+                          used={businessProfile?.businessQuota?.usedMessages || 0}
+                          total={businessProfile?.businessQuota?.messageLimit || activePlanData.messageLimit || 0}
                           icon={MessageSquare}
                           color="text-blue-500"
                         />
                         <QuotaBar
                           label="Sản phẩm"
                           used={0}
-                          total={activePlanData.maxProductAllowed || 0}
+                          total={businessProfile?.businessQuota?.maxProductAllowed || activePlanData.maxProductAllowed || 0}
                           icon={Package}
                           color="text-emerald-500"
+                          hideProgress
                         />
                     </div>
                   </div>
@@ -265,23 +412,54 @@ export function BillingManager() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    payments.map((payment) => (
-                      <TableRow key={payment.id}>
-                        <TableCell className="pl-6 font-mono text-xs">{payment.orderCode ?? "—"}</TableCell>
-                        <TableCell className="font-medium">{payment.subscriptionName ?? "—"}</TableCell>
-                        <TableCell className="font-semibold">
-                          {payment.amount != null ? `₫${payment.amount.toLocaleString("vi-VN")}` : "—"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={cn("text-[11px]", payment.status ? PAYMENT_STATUS_MAP[payment.status].cls : "")}>
-                            {payment.status ? PAYMENT_STATUS_MAP[payment.status].label : "—"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="pr-6 text-right text-sm text-muted-foreground">
-                          {payment.createdAt ? new Date(payment.createdAt).toLocaleDateString("vi-VN") : "—"}
-                        </TableCell>
-                      </TableRow>
-                    ))
+                    payments.map((payment) => {
+                      const planNameDisplay = payment.subscriptionName || (payment as any).subscriptionPlanName || (payment as any).subscriptionPlan?.name || (payment as any).planName || (payment as any).description || plans.find(p => p.price === payment.amount)?.name || (payment.amount === 0 ? "Gói Cơ Bản" : "—");
+                      const isTargeting = isCancelling === (payment.id || String(payment.orderCode));
+                      return (
+                        <TableRow key={payment.id || payment.orderCode} className={payment.status === "Pending" ? "bg-amber-500/5 hover:bg-amber-500/10 transition-colors" : ""}>
+                          <TableCell className="pl-6">
+                            {payment.orderCode ? (
+                              <button
+                                onClick={() => handleViewDetail(payment)}
+                                className="font-mono text-xs font-semibold text-primary hover:underline cursor-pointer"
+                                title="Xem chi tiết đơn hàng"
+                              >
+                                #{payment.orderCode}
+                              </button>
+                            ) : "—"}
+                          </TableCell>
+                          <TableCell className="font-medium">{planNameDisplay}</TableCell>
+                          <TableCell className="font-semibold text-primary">
+                            {payment.amount != null ? `₫${payment.amount.toLocaleString("vi-VN")}` : "—"}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className={cn("text-[11px]", payment.status ? PAYMENT_STATUS_MAP[payment.status].cls : "")}>
+                                {payment.status ? PAYMENT_STATUS_MAP[payment.status].label : "—"}
+                              </Badge>
+                              {payment.status === "Pending" && (
+                                <button
+                                  onClick={() => handleCancelPayment(payment)}
+                                  disabled={isTargeting}
+                                  className="inline-flex items-center gap-1 text-[11px] font-bold text-red-600 hover:text-red-700 hover:underline transition-all bg-red-500/10 px-2.5 py-1 rounded-md border border-red-500/30 shadow-sm cursor-pointer disabled:opacity-50"
+                                  title="Nhấn để hủy giao dịch đang xử lý này"
+                                >
+                                  {isTargeting ? (
+                                    <Loader2 className="h-3 w-3 animate-spin inline" />
+                                  ) : (
+                                    <XCircle className="h-3.5 w-3.5 inline" />
+                                  )}
+                                  Hủy đơn
+                                </button>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="pr-6 text-right text-sm text-muted-foreground">
+                            {payment.createdAt ? new Date(payment.createdAt).toLocaleDateString("vi-VN") : "—"}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
@@ -289,6 +467,12 @@ export function BillingManager() {
           </Card>
         </div>
       </div>
+      </TabsContent>
+
+      <TabsContent value="usage" className="mt-0 outline-none">
+        <UsageLogsClient />
+      </TabsContent>
+    </Tabs>
 
       {/* Pricing Modal */}
       <Dialog open={isPricingModalOpen} onOpenChange={setIsPricingModalOpen}>
@@ -299,9 +483,9 @@ export function BillingManager() {
               Chọn gói cước phù hợp với nhu cầu của doanh nghiệp bạn.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-4">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-8 pt-2">
             {plans.map((plan) => (
-              <Card key={plan.id} className="flex flex-col border-primary/10 shadow-sm hover:shadow-md transition-shadow relative">
+              <Card key={plan.id} className="flex flex-col border-primary/10 shadow-sm hover:shadow-md transition-shadow relative overflow-visible mt-2">
                 {activePlanData?.id === plan.id && (
                   <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 px-3">Gói hiện tại</Badge>
                 )}
@@ -325,7 +509,11 @@ export function BillingManager() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Package className="h-4 w-4 text-emerald-500" />
-                      <span><b>{plan.maxProductAllowed.toLocaleString("vi-VN")}</b> Sản phẩm</span>
+                      <span><b>{plan.maxProductAllowed?.toLocaleString("vi-VN") || 0}</b> Sản phẩm</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-amber-500" />
+                      <span><b>{plan.maxDocumentAllowed?.toLocaleString("vi-VN") || 0}</b> Tài liệu</span>
                     </div>
                   </div>
                   <Button 
@@ -349,6 +537,50 @@ export function BillingManager() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+
+      {/* Payment Detail Modal */}
+      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-primary" />
+              Chi tiết đơn thanh toán
+            </DialogTitle>
+            <DialogDescription>
+              {detailPayment?.orderCode ? `Mã đơn: #${detailPayment.orderCode}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {loadingDetail ? (
+            <div className="flex h-40 items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : detailPayment ? (
+            <div className="space-y-4 pt-2">
+              <div className="rounded-xl border bg-muted/20 divide-y divide-border overflow-hidden">
+                {([
+                  ["Gói cước", detailPayment.subscriptionName || (detailPayment as any).subscriptionPlanName || (detailPayment as any).subscriptionPlan?.name || (detailPayment as any).planName || (detailPayment as any).description || plans.find(p => p.price === detailPayment.amount)?.name || (detailPayment.amount === 0 ? "Gói Cơ Bản" : "—")],
+                  ["Số tiền", detailPayment.amount != null ? `₫${detailPayment.amount.toLocaleString("vi-VN")}` : "—"],
+                  ["Trạng thái", detailPayment.status ? PAYMENT_STATUS_MAP[detailPayment.status]?.label : "—"],
+                  ["Ngày tạo", detailPayment.createdAt ? new Date(detailPayment.createdAt).toLocaleString("vi-VN") : "—"],
+                  ["Ngày cập nhật", (detailPayment as any).updatedAt ? new Date((detailPayment as any).updatedAt).toLocaleString("vi-VN") : "—"],
+                ] as [string, string][]).map(([label, value]) => (
+                  <div key={label} className="flex items-center justify-between px-4 py-3">
+                    <span className="text-sm text-muted-foreground">{label}</span>
+                    <span className="text-sm font-medium text-right">{value}</span>
+                  </div>
+                ))}
+              </div>
+              {detailPayment.status && (
+                <div className="flex justify-center">
+                  <Badge variant="outline" className={cn("px-4 py-1.5 text-sm", PAYMENT_STATUS_MAP[detailPayment.status]?.cls)}>
+                    {PAYMENT_STATUS_MAP[detailPayment.status]?.label}
+                  </Badge>
+                </div>
+              )}
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

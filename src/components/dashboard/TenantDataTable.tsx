@@ -5,6 +5,7 @@ import {
   Search,
   Plus,
   CheckCircle2,
+  XCircle,
   Filter,
   Loader2,
   RefreshCw,
@@ -80,30 +81,59 @@ function StatusBadge({ status }: { status?: BusinessStatus }) {
 function ActionCell({
   tenant,
   onApprove,
+  onReject,
   loadingId,
 }: {
   tenant: Business;
   onApprove: (id: string) => void;
+  onReject: (id: string) => void;
   loadingId: string | null;
 }) {
   const uiStatus = apiStatusToUI(tenant.businessStatus);
   const isLoading = loadingId === tenant.id;
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1.5 justify-end">
       {uiStatus === "pending" && (
-        <button
-          onClick={() => onApprove(tenant.id)}
-          disabled={isLoading}
-          className={cn(
-            "inline-flex h-7 items-center gap-1.5 rounded-md px-3 text-xs font-semibold text-white",
-            "bg-emerald-600 transition-all hover:bg-emerald-700 active:scale-[0.97]",
-            "disabled:opacity-60 disabled:cursor-not-allowed"
-          )}
-        >
-          {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
-          Duyệt
-        </button>
+        <>
+          <button
+            onClick={() => onApprove(tenant.id)}
+            disabled={isLoading}
+            title="Phê duyệt"
+            className={cn(
+              "inline-flex h-7 items-center gap-1.5 rounded-md px-3 text-xs font-semibold text-white",
+              "bg-emerald-600 transition-all hover:bg-emerald-700 active:scale-[0.97]",
+              "disabled:pointer-events-none disabled:opacity-50"
+            )}
+          >
+            {isLoading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <CheckCircle2 className="h-3.5 w-3.5" />
+            )}
+            Duyệt
+          </button>
+          <button
+            onClick={() => onReject(tenant.id)}
+            disabled={isLoading}
+            title="Từ chối"
+            className={cn(
+              "inline-flex h-7 items-center gap-1.5 rounded-md px-3 text-xs font-semibold text-white",
+              "bg-red-500 transition-all hover:bg-red-600 active:scale-[0.97]",
+              "disabled:pointer-events-none disabled:opacity-50"
+            )}
+          >
+            {isLoading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <XCircle className="h-3.5 w-3.5" />
+            )}
+            Từ chối
+          </button>
+        </>
+      )}
+      {uiStatus !== "pending" && (
+        <span className="text-xs text-muted-foreground">—</span>
       )}
     </div>
   );
@@ -158,6 +188,22 @@ export function TenantDataTable() {
       fetchTenants();
     } catch (err: any) {
       toast.error("Duyệt thất bại", {
+        description: err.response?.data?.message || err.message,
+      });
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    if (!window.confirm("Bạn có chắc chắn muốn từ chối doanh nghiệp này?")) return;
+    setLoadingId(id);
+    try {
+      await businessAPI.verify(id, false);
+      toast.success("Đã từ chối doanh nghiệp");
+      fetchTenants();
+    } catch (err: any) {
+      toast.error("Từ chối thất bại", {
         description: err.response?.data?.message || err.message,
       });
     } finally {
@@ -330,6 +376,7 @@ export function TenantDataTable() {
                     <ActionCell
                       tenant={tenant}
                       onApprove={handleApprove}
+                      onReject={handleReject}
                       loadingId={loadingId}
                     />
                   </TableCell>

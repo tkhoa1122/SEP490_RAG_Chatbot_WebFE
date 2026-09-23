@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, use } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Plus, UploadCloud } from "lucide-react";
+import { Plus, UploadCloud, History } from "lucide-react";
 import { ProductDataTable } from "@/components/business/products/ProductDataTable";
 import { ProductFormModal } from "@/components/business/products/ProductFormModal";
 import { ImportProductsModal } from "@/components/business/products/ImportProductsModal";
@@ -10,6 +11,7 @@ import { ProductDTO } from "@/infrastructure/dto/ProductDTO";
 
 export function ProductsClient({ tenantIdPromise }: { tenantIdPromise: Promise<string> }) {
   const tenantId = use(tenantIdPromise);
+  const router = useRouter();
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -40,6 +42,14 @@ export function ProductsClient({ tenantIdPromise }: { tenantIdPromise: Promise<s
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={() => router.push(`/${tenantId}/business/products/import-logs`)} 
+            className="gap-2 text-primary border-primary/20 hover:bg-primary/5"
+          >
+            <History className="h-4 w-4" />
+            Lịch sử Import
+          </Button>
           <Button variant="outline" onClick={() => setIsImportOpen(true)} className="gap-2">
             <UploadCloud className="h-4 w-4" />
             Import CSV

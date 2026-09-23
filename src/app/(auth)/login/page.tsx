@@ -202,7 +202,9 @@ function AdminLoginContent() {
             Đăng ký cửa hàng
           </Link>
           <span className="text-slate-300">|</span>
-          <a href="#" className="text-[#5a9c82] hover:underline hover:text-[#2c5243]">Liên hệ hỗ trợ</a>
+          <Link href="/forgot-password" className="text-[#5a9c82] hover:underline hover:text-[#2c5243]">
+            Quên mật khẩu?
+          </Link>
         </div>
       </div>
     </div>

@@ -1,22 +1,88 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { UploadCloud, FileText, Bot, CheckCircle2, Loader2, FileUp } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { UploadCloud, FileText, Bot, CheckCircle2, Loader2, FileUp, Trash2, XCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { documentAPI } from "@/infrastructure/api/documentAPI";
-
-// Dummy status for display (Backend doesn't provide GET documents yet)
-const MOCK_DOCUMENTS = [
-  { id: 1, name: "Chính sách bảo hành.pdf", time: "10:30, 24/06/2026", status: "Hoàn tất" },
-  { id: 2, name: "Hướng dẫn sử dụng.docx", time: "15:45, 23/06/2026", status: "Hoàn tất" },
-];
+import type { DocumentDto, DocumentStatus } from "@/infrastructure/dto/DocumentDTO";
 
 export default function CatalogPage() {
+  const [documents, setDocuments] = useState<DocumentDto[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchDocuments = async () => {
+    setIsLoading(true);
+    try {
+      const res = await documentAPI.getAll({ PageIndex: 1, PageSize: 50 }) as any;
+      const items = res.data?.items || res.items || (Array.isArray(res.data) ? res.data : []);
+      setDocuments(items);
+    } catch (err: any) {
+      toast.error("Không thể tải danh sách tài liệu", { description: err.message });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDocuments();
+  }, []);
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa tài liệu này? Hành động không thể hoàn tác.")) return;
+    
+    setDeletingId(id);
+    try {
+      await documentAPI.delete(id);
+      toast.success("Xóa tài liệu thành công");
+      fetchDocuments();
+    } catch (err: any) {
+      toast.error("Không thể xóa tài liệu", { description: err.response?.data?.message || err.message });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const formatBytes = (bytes?: number) => {
+    if (bytes === undefined || bytes === null) return "";
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  };
+
+  const renderStatus = (doc: any) => {
+    // API hiện tại không trả về trường trạng thái nào (status/state), nên mặc định hiển thị "Đã tải lên"
+    const status = doc.status || doc.documentStatus || doc.knowledgeDocumentStatus || doc.state;
+    switch (status) {
+      case "Embedded":
+        return <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20"><CheckCircle2 className="h-3 w-3 mr-1" /> Đã nhúng (Hoàn tất)</Badge>;
+      case "Processing":
+        return <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20"><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Đang xử lý</Badge>;
+      case "Failed":
+        return <Badge variant="outline" className="bg-red-500/10 text-red-600 border-red-500/20"><XCircle className="h-3 w-3 mr-1" /> Bị lỗi</Badge>;
+      case "Deleted":
+        return <Badge variant="outline" className="bg-gray-500/10 text-gray-600 border-gray-500/20">Đã xóa</Badge>;
+      default:
+        return <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20"><CheckCircle2 className="h-3 w-3 mr-1" /> Đã tải lên</Badge>;
+    }
+  };
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "Không rõ thời gian";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleString('vi-VN');
+    } catch {
+      return dateString;
+    }
+  };
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -40,7 +106,7 @@ export default function CatalogPage() {
     try {
       await documentAPI.upload(files);
       toast.success(`Đã tải lên thành công ${files.length} tài liệu!`);
-      // Since backend doesn't have a GET endpoint for uploaded docs yet, we can't refresh the list dynamically.
+      fetchDocuments(); // refresh list after upload
     } catch (err: any) {
       toast.error("Tải lên thất bại", { description: err.response?.data?.message || err.message });
     } finally {
@@ -114,23 +180,46 @@ export default function CatalogPage() {
               Tiến trình đồng bộ và vector hóa dữ liệu vào hệ thống AI.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {MOCK_DOCUMENTS.map((doc) => (
-              <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg opacity-60">
-                <div className="flex items-center gap-3">
-                  <div className="bg-primary/10 p-2 rounded-full text-primary">
-                    <FileText className="h-4 w-4" />
+          <CardContent className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+            {isLoading ? (
+              <div className="flex justify-center p-6"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+            ) : documents.length === 0 ? (
+              <div className="text-center p-6 text-muted-foreground text-sm border-2 border-dashed rounded-lg">Chưa có tài liệu nào.</div>
+            ) : (
+              documents.map((doc) => (
+                <div key={doc.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-lg gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-primary/10 p-2 rounded-full text-primary">
+                      <FileText className="h-4 w-4" />
+                    </div>
+                    <div>
+                      {doc.fileUrl ? (
+                        <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-primary hover:underline">
+                          {doc.fileName || doc.title || doc.name || "Không rõ tên tài liệu"}
+                        </a>
+                      ) : (
+                        <p className="text-sm font-medium">{doc.fileName || doc.title || doc.name || "Không rõ tên tài liệu"}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        {formatBytes(doc.sizeInBytes)} • Đã tải lên lúc {formatDate(doc.createdAt || doc.createdDate)}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium">{doc.name}</p>
-                    <p className="text-xs text-muted-foreground">Đã tải lên lúc {doc.time}</p>
+                  <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-3 mt-2 sm:mt-0">
+                    {renderStatus(doc)}
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                      onClick={() => handleDelete(doc.id)}
+                      disabled={deletingId === doc.id}
+                    >
+                      {deletingId === doc.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    </Button>
                   </div>
                 </div>
-                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
-                  <CheckCircle2 className="h-3 w-3 mr-1" /> {doc.status}
-                </Badge>
-              </div>
-            ))}
+              ))
+            )}
 
             <Button className="w-full mt-2" variant="outline" disabled>
               Huấn luyện lại toàn bộ dữ liệu

@@ -6,6 +6,113 @@
         "version": "v1"
     },
     "paths": {
+        "/api/v1/activity-logs": {
+            "get": {
+                "tags": [
+                    "ActivityLog"
+                ],
+                "parameters": [
+                    {
+                        "name": "Filter.BusinessId",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "Filter.Keyword",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "Filter.ActorId",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "Filter.Action",
+                        "in": "query",
+                        "schema": {
+                            "$ref": "#/components/schemas/ActionLogEnums"
+                        }
+                    },
+                    {
+                        "name": "Filter.TargetType",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "Filter.TargetId",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "Filter.Status",
+                        "in": "query",
+                        "schema": {
+                            "$ref": "#/components/schemas/StatusLogEnums"
+                        }
+                    },
+                    {
+                        "name": "Filter.Severity",
+                        "in": "query",
+                        "schema": {
+                            "$ref": "#/components/schemas/SeverityLogEnums"
+                        }
+                    },
+                    {
+                        "name": "Filter.FromDate",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "Filter.ToDate",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "Filter.PageIndex",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "Filter.PageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
         "/api/v1/api-keys": {
             "post": {
                 "tags": [
@@ -438,6 +545,80 @@
                 ]
             }
         },
+        "/api/v1/businesses/config": {
+            "get": {
+                "tags": [
+                    "Business"
+                ],
+                "summary": "BO gets business config",
+                "description": "Business owner gets the current business config",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Business"
+                ],
+                "summary": "BO updates business config",
+                "description": "Business owner updates the current business config",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateBusinessConfigCommand"
+                            }
+                        },
+                        "text/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateBusinessConfigCommand"
+                            }
+                        },
+                        "application/*+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateBusinessConfigCommand"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/businesses/config/default": {
+            "put": {
+                "tags": [
+                    "Business"
+                ],
+                "summary": "BO resets business config to default",
+                "description": "Business owner resets the current business config to default",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
         "/api/v1/businesses/{id}/verify": {
             "put": {
                 "tags": [
@@ -459,6 +640,57 @@
                         "in": "query",
                         "schema": {
                             "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/business-quotas": {
+            "get": {
+                "tags": [
+                    "BusinessQuotas"
+                ],
+                "summary": "BO,CT gets usage logs for the current business quota",
+                "description": "Gets a paginated list of usage logs belonging to the current business quota",
+                "parameters": [
+                    {
+                        "name": "SourceType",
+                        "in": "query",
+                        "schema": {
+                            "$ref": "#/components/schemas/SourceTypeEnum"
+                        }
+                    },
+                    {
+                        "name": "OrderBy",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "PageIndex",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "PageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
                         }
                     }
                 ],
@@ -692,11 +924,731 @@
                 ]
             }
         },
+        "/api/v1/category-attributes/drafts": {
+            "post": {
+                "tags": [
+                    "CategoryAttributeControllers"
+                ],
+                "summary": "Creates a new draft version of a category attribute schema.",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateDraftCommand"
+                            }
+                        },
+                        "text/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateDraftCommand"
+                            }
+                        },
+                        "application/*+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateDraftCommand"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/category-attributes": {
+            "get": {
+                "tags": [
+                    "CategoryAttributeControllers"
+                ],
+                "summary": "Gets the highest schema version of every category.",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/category-attributes/activate": {
+            "put": {
+                "tags": [
+                    "CategoryAttributeControllers"
+                ],
+                "summary": "Activates a category attribute schema version.",
+                "parameters": [
+                    {
+                        "name": "category",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "version",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/category-attributes/pending-approval": {
+            "get": {
+                "tags": [
+                    "CategoryAttributeControllers"
+                ],
+                "summary": "Gets category attribute schema versions pending approval.",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/category-attributes/history": {
+            "get": {
+                "tags": [
+                    "CategoryAttributeControllers"
+                ],
+                "summary": "Gets all schema versions for a category.",
+                "parameters": [
+                    {
+                        "name": "category",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/category-attributes/attributes/{attributeKey}": {
+            "put": {
+                "tags": [
+                    "CategoryAttributeControllers"
+                ],
+                "summary": "Updates an attribute definition without changing its data type.",
+                "parameters": [
+                    {
+                        "name": "attributeKey",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "category",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateAttributeDefinitionCommand"
+                            }
+                        },
+                        "text/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateAttributeDefinitionCommand"
+                            }
+                        },
+                        "application/*+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateAttributeDefinitionCommand"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/customers": {
+            "get": {
+                "tags": [
+                    "Customers"
+                ],
+                "summary": "BO,CT gets customers of the current business",
+                "description": "Gets paged customers scoped to the current business, with CustomerExternalId and status filters.",
+                "parameters": [
+                    {
+                        "name": "CustomerExternalId",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "Status",
+                        "in": "query",
+                        "schema": {
+                            "$ref": "#/components/schemas/CustomerStatus"
+                        }
+                    },
+                    {
+                        "name": "OrderBy",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "PageIndex",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "PageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/customers/{customerExternalId}/conversations": {
+            "get": {
+                "tags": [
+                    "Customers"
+                ],
+                "summary": "BO,CT gets conversations of a customer",
+                "description": "Gets paged conversations belonging to a CustomerExternalId in the current business.",
+                "parameters": [
+                    {
+                        "name": "customerExternalId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "pageIndex",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "pageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32",
+                            "default": 10
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/customers/{customerExternalId}/conversations/{conversationId}/messages": {
+            "get": {
+                "tags": [
+                    "Customers"
+                ],
+                "summary": "BO,CT gets a customer conversation messages",
+                "description": "Gets cursor-paged messages with content search and Customer/ChatBot sender filtering.",
+                "parameters": [
+                    {
+                        "name": "customerExternalId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "conversationId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "LastCursor",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "Limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "Search",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "SenderType",
+                        "in": "query",
+                        "schema": {
+                            "$ref": "#/components/schemas/SenderTypeEnum"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/customers/{customerExternalId}/conversations/{conversationId}/order-events": {
+            "get": {
+                "tags": [
+                    "Customers"
+                ],
+                "summary": "BO,CT gets cursor-paged order events of a customer conversation",
+                "description": "Gets order events separately from message history to avoid repeating all order events on every message page.",
+                "parameters": [
+                    {
+                        "name": "customerExternalId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "conversationId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "LastCursor",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "Limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/customers/{customerExternalId}/conversations/{conversationId}/product-comparisons": {
+            "get": {
+                "tags": [
+                    "Customers"
+                ],
+                "summary": "BO,CT gets cursor-paged product comparisons of a customer conversation",
+                "description": "Gets product-comparison analytics separately from conversation messages.",
+                "parameters": [
+                    {
+                        "name": "customerExternalId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "conversationId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "LastCursor",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "Limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/customers/{customerExternalId}/conversations/{conversationId}/search-query-logs": {
+            "get": {
+                "tags": [
+                    "Customers"
+                ],
+                "summary": "BO,CT gets cursor-paged search query logs of a customer conversation",
+                "description": "Gets product-search analytics separately from conversation messages.",
+                "parameters": [
+                    {
+                        "name": "customerExternalId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "conversationId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "LastCursor",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "Limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/dashboards/subscriptions": {
+            "get": {
+                "tags": [
+                    "Dashboard"
+                ],
+                "description": "Get subscription dashboard data",
+                "parameters": [
+                    {
+                        "name": "Filter.Status",
+                        "in": "query",
+                        "schema": {
+                            "$ref": "#/components/schemas/StatusEnums"
+                        }
+                    },
+                    {
+                        "name": "Filter.PageIndex",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "Filter.PageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/dashboards/revenue": {
+            "get": {
+                "tags": [
+                    "Dashboard"
+                ],
+                "description": "Get revenue dashboard data",
+                "parameters": [
+                    {
+                        "name": "Filter.Month",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "Filter.PageIndex",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "Filter.PageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/dashboards/summary": {
+            "get": {
+                "tags": [
+                    "Dashboard"
+                ],
+                "description": "Get summary dashboard data",
+                "parameters": [
+                    {
+                        "name": "Filter.PageIndex",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "Filter.PageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/dashboards/ai-usage": {
+            "get": {
+                "tags": [
+                    "Dashboard"
+                ],
+                "description": "Get AI usage dashboard data",
+                "parameters": [
+                    {
+                        "name": "Filter.Range",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "Filter.PageIndex",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "Filter.PageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/dashboards/business": {
+            "get": {
+                "tags": [
+                    "Dashboard"
+                ],
+                "description": "Get business chatbot analytics dashboard data",
+                "parameters": [
+                    {
+                        "name": "From",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "To",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
         "/api/v1/documents/upload": {
             "post": {
                 "tags": [
                     "Document"
                 ],
+                "description": "Upload documents to the system",
                 "requestBody": {
                     "content": {
                         "multipart/form-data": {
@@ -720,6 +1672,135 @@
                         }
                     }
                 },
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/documents": {
+            "get": {
+                "tags": [
+                    "Document"
+                ],
+                "description": "Get all documents with optional filters",
+                "parameters": [
+                    {
+                        "name": "FileName",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "Status",
+                        "in": "query",
+                        "schema": {
+                            "$ref": "#/components/schemas/KnowledgeDocumentStatus"
+                        }
+                    },
+                    {
+                        "name": "PageIndex",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "PageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/documents/{documentId}": {
+            "delete": {
+                "tags": [
+                    "Document"
+                ],
+                "description": "Delete a document by its ID",
+                "parameters": [
+                    {
+                        "name": "documentId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/import-jobs": {
+            "get": {
+                "tags": [
+                    "ImportJobs"
+                ],
+                "summary": "BO,CT gets import job logs",
+                "description": "Gets import jobs for the current business, with file name search and status filtering",
+                "parameters": [
+                    {
+                        "name": "FileName",
+                        "in": "query",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "Status",
+                        "in": "query",
+                        "schema": {
+                            "$ref": "#/components/schemas/ImportJobStatus"
+                        }
+                    },
+                    {
+                        "name": "PageIndex",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "PageSize",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK"
@@ -950,6 +2031,34 @@
         },
         "/api/v1/payments/order/{orderCode}": {
             "get": {
+                "tags": [
+                    "Payment"
+                ],
+                "parameters": [
+                    {
+                        "name": "orderCode",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "format": "int64"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/payments/cancel/{orderCode}": {
+            "delete": {
                 "tags": [
                     "Payment"
                 ],
@@ -1850,6 +2959,61 @@
     },
     "components": {
         "schemas": {
+            "ActionLogEnums": {
+                "enum": [
+                    "Create",
+                    "Update",
+                    "Delete",
+                    "Login",
+                    "Logout",
+                    "PasswordChange",
+                    "PasswordReset",
+                    "PermissionChange",
+                    "RoleChange",
+                    "DataExport",
+                    "DataImport",
+                    "View"
+                ],
+                "type": "string"
+            },
+            "AttributeDataType": {
+                "enum": [
+                    "Keyword",
+                    "Number",
+                    "Boolean"
+                ],
+                "type": "string"
+            },
+            "AttributeDefinition": {
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "displayName": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "dataType": {
+                        "$ref": "#/components/schemas/AttributeDataType"
+                    },
+                    "isFilterable": {
+                        "type": "boolean"
+                    },
+                    "isStrict": {
+                        "type": "boolean"
+                    },
+                    "allowedValues": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false
+            },
             "BusinessEnums": {
                 "enum": [
                     "REJECTED",
@@ -1915,6 +3079,23 @@
                 ],
                 "type": "string"
             },
+            "CreateDraftCommand": {
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "attributes": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AttributeDefinition"
+                        },
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false
+            },
             "CreateNewKeyCommand": {
                 "type": "object",
                 "properties": {
@@ -1965,6 +3146,15 @@
                 },
                 "additionalProperties": false
             },
+            "CustomerStatus": {
+                "enum": [
+                    "Active",
+                    "Inactive",
+                    "Deleted",
+                    "Banned"
+                ],
+                "type": "string"
+            },
             "ForgotPasswordCommand": {
                 "type": "object",
                 "properties": {
@@ -1974,6 +3164,27 @@
                     }
                 },
                 "additionalProperties": false
+            },
+            "ImportJobStatus": {
+                "enum": [
+                    "Pending",
+                    "Validating",
+                    "ImportingProducts",
+                    "Completed",
+                    "CompletedWithErrors",
+                    "Failed"
+                ],
+                "type": "string"
+            },
+            "KnowledgeDocumentStatus": {
+                "enum": [
+                    "Uploaded",
+                    "Processing",
+                    "Embedded",
+                    "Failed",
+                    "Deleted"
+                ],
+                "type": "string"
             },
             "LoginCommand": {
                 "required": [
@@ -2233,10 +3444,42 @@
                 },
                 "additionalProperties": false
             },
+            "SenderTypeEnum": {
+                "enum": [
+                    "None",
+                    "Customer",
+                    "ChatBot"
+                ],
+                "type": "string"
+            },
+            "SeverityLogEnums": {
+                "enum": [
+                    "Info",
+                    "Warning",
+                    "Error",
+                    "Critical"
+                ],
+                "type": "string"
+            },
+            "SourceTypeEnum": {
+                "enum": [
+                    "Chat",
+                    "EmbeddingProduct",
+                    "EmbeddingDocument"
+                ],
+                "type": "string"
+            },
             "StatusEnums": {
                 "enum": [
                     "Active",
                     "Inactive"
+                ],
+                "type": "string"
+            },
+            "StatusLogEnums": {
+                "enum": [
+                    "Success",
+                    "Failure"
                 ],
                 "type": "string"
             },
@@ -2332,6 +3575,29 @@
                 ],
                 "type": "string"
             },
+            "UpdateAttributeDefinitionCommand": {
+                "type": "object",
+                "properties": {
+                    "displayName": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "isFilterable": {
+                        "type": "boolean"
+                    },
+                    "isStrict": {
+                        "type": "boolean"
+                    },
+                    "allowedValues": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false
+            },
             "UpdateBusinessCommand": {
                 "type": "object",
                 "properties": {
@@ -2349,6 +3615,60 @@
                     },
                     "addressLine": {
                         "type": "string",
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false
+            },
+            "UpdateBusinessConfigCommand": {
+                "type": "object",
+                "properties": {
+                    "modelTemperature": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    },
+                    "topKDocument": {
+                        "type": "integer",
+                        "format": "int32",
+                        "nullable": true
+                    },
+                    "rerankingScore": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    },
+                    "systemPrompt": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "fallBackMessage": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "maxOutPutToken": {
+                        "type": "integer",
+                        "format": "int32",
+                        "nullable": true
+                    },
+                    "lowPriceMaxLimit": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    },
+                    "mediumPriceMinLimit": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    },
+                    "mediumPriceMaxLimit": {
+                        "type": "number",
+                        "format": "double",
+                        "nullable": true
+                    },
+                    "highPriceMinLimit": {
+                        "type": "number",
+                        "format": "double",
                         "nullable": true
                     }
                 },

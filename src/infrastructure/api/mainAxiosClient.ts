@@ -58,8 +58,10 @@ mainAxiosClient.interceptors.response.use(
       document.cookie = "user_role=; path=/; max-age=0";
       document.cookie = "tenant_id=; path=/; max-age=0";
       
-      // Chuyển hướng cứng về trang login
-      window.location.href = "/login";
+      // Chuyển hướng cứng về trang login nếu đang không ở trang login
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
     }
 
     // Xử lý lỗi Validation (400) từ .NET Core

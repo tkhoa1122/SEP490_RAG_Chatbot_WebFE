@@ -4,11 +4,14 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, LogIn, Loader2, ShoppingBag } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { mainAuthAPI, resolvePostLoginUrl } from "@/infrastructure/api/mainAuthAPI";
 
 interface LoginFormData {
   email: string;
   password: string;
+  rememberMe: boolean;
 }
 
 interface LoginFormProps {
@@ -16,7 +19,8 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ onSuccess }: LoginFormProps) {
-  const [form, setForm] = useState<LoginFormData>({ email: "", password: "" });
+  const router = useRouter();
+  const [form, setForm] = useState<LoginFormData>({ email: "", password: "", rememberMe: false });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,14 +34,43 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       return;
     }
 
-    setIsLoading(true);
-    // Simulate API call
-    await new Promise((res) => setTimeout(res, 1500));
-    setIsLoading(false);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(form.email)) {
+      setError("Email không đúng định dạng.");
+      return;
+    }
 
-    // Simulate: first login detection (replace with real logic)
-    const isFirstLogin = form.password === "temp123";
-    onSuccess?.(isFirstLogin);
+    setIsLoading(true);
+    try {
+      const res = await mainAuthAPI.login({
+        email: form.email,
+        password: form.password,
+        rememberMe: form.rememberMe,
+      });
+
+      if (!res.isSuccess || !res.data?.accessToken) {
+        setError(res.message || "Email hoặc mật khẩu không chính xác.");
+        return;
+      }
+
+      const { role, tenantId, isProfileCompleted } = res.data;
+      const isFirstLogin = isProfileCompleted === false;
+
+      if (onSuccess) {
+        onSuccess(isFirstLogin);
+      } else {
+        const redirectUrl = resolvePostLoginUrl(role ?? "", tenantId);
+        router.push(redirectUrl);
+      }
+    } catch (err: any) {
+      const serverMsg =
+        err?.response?.data?.message ||
+        err?.response?.data?.errors?.[0] ||
+        null;
+      setError(serverMsg || "Email hoặc mật khẩu không chính xác. Vui lòng thử lại.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

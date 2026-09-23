@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Plus, Pencil, Trash2, Search, CreditCard, Loader2, RefreshCw,
-  Zap, MessageSquare, Package, Clock, DollarSign,
+  Zap, MessageSquare, Package, Clock, DollarSign, FileText,
+  Crown, Star, ShieldCheck, Box
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +35,13 @@ const STATUS_CFG: Record<StatusEnums, { label: string; cls: string }> = {
 
 const formatVND = (n: number) => `₫${n.toLocaleString("vi-VN")}`;
 
+const getLevelConfig = (level: number = 0) => {
+  if (level >= 3) return { label: `Level ${level} (VIP)`, icon: Crown, cls: "bg-amber-100 text-amber-700 border-amber-300" };
+  if (level === 2) return { label: `Level ${level} (Pro)`, icon: ShieldCheck, cls: "bg-violet-100 text-violet-700 border-violet-300" };
+  if (level === 1) return { label: `Level ${level} (Standard)`, icon: Star, cls: "bg-blue-100 text-blue-700 border-blue-300" };
+  return { label: `Level ${level} (Basic)`, icon: Box, cls: "bg-slate-100 text-slate-700 border-slate-300" };
+};
+
 // ── Plan Detail Card ─────────────────────────────────────────────────────────
 
 function PlanCard({ plan, onEdit, onDelete }: {
@@ -46,14 +54,20 @@ function PlanCard({ plan, onEdit, onDelete }: {
       plan.status === "Active" ? "border-primary/20" : "opacity-70")}>
       <CardContent className="flex flex-col gap-4 pt-5">
         {/* Header */}
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-lg font-bold text-foreground">{plan.name}</p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-lg font-bold text-foreground break-words">{plan.name}</p>
+              <Badge variant="outline" className={cn("flex shrink-0 items-center gap-1 text-[10px] px-1.5 py-0 whitespace-nowrap", getLevelConfig(plan.level).cls)}>
+                {(() => { const Ico = getLevelConfig(plan.level).icon; return <Ico className="h-3 w-3" />; })()}
+                {getLevelConfig(plan.level).label}
+              </Badge>
+            </div>
             {plan.description && (
-              <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">{plan.description}</p>
+              <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{plan.description}</p>
             )}
           </div>
-          <Badge variant="outline" className={cn("shrink-0", STATUS_CFG[plan.status ?? "Inactive"].cls)}>
+          <Badge variant="outline" className={cn("shrink-0 whitespace-nowrap", STATUS_CFG[plan.status ?? "Inactive"].cls)}>
             {STATUS_CFG[plan.status ?? "Inactive"].label}
           </Badge>
         </div>
@@ -67,11 +81,12 @@ function PlanCard({ plan, onEdit, onDelete }: {
         </div>
 
         {/* Limits */}
-        <div className="grid grid-cols-3 gap-2 rounded-xl bg-muted/50 p-3">
+        <div className="grid grid-cols-2 gap-2 rounded-xl bg-muted/50 p-3 sm:grid-cols-4">
           {[
             { icon: Zap, label: "Token", value: plan.tokenLimit.toLocaleString("vi-VN"), color: "text-violet-500" },
             { icon: MessageSquare, label: "Tin nhắn", value: plan.messageLimit.toLocaleString("vi-VN"), color: "text-blue-500" },
             { icon: Package, label: "Sản phẩm", value: plan.maxProductAllowed.toLocaleString("vi-VN"), color: "text-emerald-500" },
+            { icon: FileText, label: "Tài liệu", value: (plan.maxDocumentAllowed ?? plan.maxDocmentAllowed ?? 0).toLocaleString("vi-VN"), color: "text-amber-500" },
           ].map(({ icon: Icon, label, value, color }) => (
             <div key={label} className="flex flex-col items-center gap-1">
               <Icon className={cn("h-4 w-4", color)} />
@@ -111,9 +126,11 @@ interface PlanFormState {
   tokenLimit: number;
   messageLimit: number;
   maxProductAllowed: number;
+  maxDocumentAllowed: number;
+  level: number;
 }
 
-const EMPTY: PlanFormState = { name: "", description: "", price: 0, duration: 30, tokenLimit: 0, messageLimit: 0, maxProductAllowed: 0 };
+const EMPTY: PlanFormState = { name: "", description: "", price: 0, duration: 30, tokenLimit: 0, messageLimit: 0, maxProductAllowed: 0, maxDocumentAllowed: 10, level: 0 };
 
 function PlanFormDialog({ open, editing, onClose, onSaved }: {
   open: boolean;
@@ -134,6 +151,8 @@ function PlanFormDialog({ open, editing, onClose, onSaved }: {
         tokenLimit: editing.tokenLimit,
         messageLimit: editing.messageLimit,
         maxProductAllowed: editing.maxProductAllowed,
+        maxDocumentAllowed: editing.maxDocumentAllowed ?? editing.maxDocmentAllowed ?? 10,
+        level: editing.level ?? 0,
       });
     } else {
       setForm(EMPTY);
@@ -155,9 +174,15 @@ function PlanFormDialog({ open, editing, onClose, onSaved }: {
 
   const handleSave = async () => {
     if (!form.name.trim()) { toast.error("Vui lòng nhập tên gói"); return; }
+    if (form.maxDocumentAllowed <= 0) { toast.error("Số tài liệu tối đa phải lớn hơn 0"); return; }
     setSaving(true);
     try {
-      const body: SubscriptionAddCommand = { ...form };
+      const body: any = {
+        ...form,
+        maxDocumentAllowed: form.maxDocumentAllowed,
+        maxDocmentAllowed: form.maxDocumentAllowed, // Gửi cả 2 trường để tương thích BE
+        level: form.level,
+      };
       if (editing) {
         await subscriptionAPI.update(editing.id, body);
         toast.success("Đã cập nhật gói cước");
@@ -203,10 +228,43 @@ function PlanFormDialog({ open, editing, onClose, onSaved }: {
           </div>
           {numField("Giá (VNĐ) *", "price", DollarSign, "₫")}
           {numField("Thời hạn (ngày) *", "duration", Clock, "ngày")}
+          
+          {/* Level Selector */}
+          <div className="col-span-2 space-y-1.5 mt-2">
+            <label className="text-sm font-medium">Cấp độ gói (Level) *</label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[0, 1, 2, 3].map((lvl) => {
+                const cfg = getLevelConfig(lvl);
+                const Icon = cfg.icon;
+                const isSelected = form.level === lvl;
+                return (
+                  <div
+                    key={lvl}
+                    onClick={() => setForm(f => ({ ...f, level: lvl }))}
+                    className={cn(
+                      "cursor-pointer flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 p-3 text-center transition-all",
+                      isSelected 
+                        ? cn("border-primary bg-primary/5", cfg.cls.split(' ')[1]) // extract text color
+                        : "border-muted bg-transparent hover:border-primary/50 text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <Icon className={cn("h-6 w-6 mb-1", isSelected ? "" : "opacity-50")} />
+                    <div className="text-[11px] font-semibold">{cfg.label}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="col-span-2 h-px bg-border my-2"></div>
+
           {numField("Giới hạn Token AI", "tokenLimit", Zap)}
           {numField("Giới hạn Tin nhắn", "messageLimit", MessageSquare)}
-          <div className="col-span-2">
+          <div className="col-span-1">
             {numField("Số sản phẩm tối đa", "maxProductAllowed", Package)}
+          </div>
+          <div className="col-span-1">
+            {numField("Số tài liệu tối đa *", "maxDocumentAllowed", FileText)}
           </div>
         </div>
         <DialogFooter>
@@ -250,7 +308,6 @@ function DeletePlanDialog({ item, onClose, onDeleted }: {
           <DialogTitle className="text-red-600">Xóa gói cước</DialogTitle>
           <DialogDescription>
             Bạn có chắc muốn xóa gói <b>"{item?.name}"</b>?
-            Các doanh nghiệp đang dùng gói này sẽ không bị ảnh hưởng ngay nhưng không thể gia hạn nữa.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="mt-4">
@@ -265,100 +322,108 @@ function DeletePlanDialog({ item, onClose, onDeleted }: {
   );
 }
 
-// ── Main Component ───────────────────────────────────────────────────────────
+// ── Main Page Component ──────────────────────────────────────────────────────
 
 export function PlansManager() {
   const [plans, setPlans] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [view, setView] = useState<"card" | "table">("card");
+
+  // Modal states
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Subscription | null>(null);
   const [deleting, setDeleting] = useState<Subscription | null>(null);
-  const [view, setView] = useState<"cards" | "table">("cards");
 
-  const fetch = useCallback(async () => {
+  const fetchPlans = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await subscriptionAPI.getAll({
-        "Filter.Search": search || undefined,
-        "Filter.PageSize": 50,
-      });
+      const res = await subscriptionAPI.getAll();
       setPlans(res.data?.items ?? []);
-    } catch { toast.error("Không thể tải danh sách gói cước"); }
-    finally { setLoading(false); }
-  }, [search]);
+    } catch {
+      toast.error("Không thể tải danh sách gói cước");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  useEffect(() => { const t = setTimeout(fetch, 300); return () => clearTimeout(t); }, [fetch]);
+  useEffect(() => { fetchPlans(); }, [fetchPlans]);
 
   const filtered = plans.filter(p =>
-    !search || p.name.toLowerCase().includes(search.toLowerCase())
+    !search.trim() ||
+    p.name.toLowerCase().includes(search.toLowerCase()) ||
+    (p.description && p.description.toLowerCase().includes(search.toLowerCase()))
   );
 
   return (
-    <>
-      <Card>
-        <CardHeader className="border-b pb-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="space-y-1">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <CreditCard className="h-5 w-5 text-primary" />
-                Quản lý gói cước &amp; Subscription
-              </CardTitle>
-              <CardDescription>
-                Tạo và cấu hình các gói cước với giới hạn Token, Tin nhắn và Sản phẩm tương ứng.
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex rounded-lg border border-border overflow-hidden">
-                <button onClick={() => setView("cards")} className={cn("px-3 py-1.5 text-xs font-medium transition-colors",
-                  view === "cards" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}>Cards</button>
-                <button onClick={() => setView("table")} className={cn("px-3 py-1.5 text-xs font-medium transition-colors",
-                  view === "table" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}>Table</button>
-              </div>
-              <button onClick={fetch} disabled={loading} className="flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-muted transition-colors">
-                <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-              </button>
-              <Button onClick={() => { setEditing(null); setFormOpen(true); }} className="gap-2">
-                <Plus className="h-4 w-4" /> Tạo gói mới
-              </Button>
-            </div>
-          </div>
-          <div className="relative mt-4">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input type="text" placeholder="Tìm gói cước..." value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="h-9 w-full max-w-sm rounded-lg border border-border bg-background pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-ring/20" />
-          </div>
-        </CardHeader>
+    <div className="space-y-6">
+      {/* Header Bar */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight">Gói cước & Quota AI</h1>
+          <p className="text-sm text-muted-foreground">
+            Quản lý các gói dịch vụ, hạn mức tài nguyên AI (Token, Tin nhắn, Sản phẩm, Tài liệu) cho toàn hệ thống.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={fetchPlans} disabled={loading} title="Làm mới">
+            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+          </Button>
+          <Button onClick={() => { setEditing(null); setFormOpen(true); }} className="gap-1.5 font-semibold">
+            <Plus className="h-4 w-4" /> Tạo gói mới
+          </Button>
+        </div>
+      </div>
 
-        <CardContent className="p-6">
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-12 text-muted-foreground">
-              <CreditCard className="h-10 w-10" />
-              <p className="text-sm">Chưa có gói cước nào</p>
-            </div>
-          ) : view === "cards" ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {filtered.map(plan => (
-                <PlanCard key={plan.id} plan={plan}
-                  onEdit={p => { setEditing(p); setFormOpen(true); }}
-                  onDelete={p => setDeleting(p)} />
-              ))}
-            </div>
-          ) : (
+      {/* Toolbar */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full sm:w-72">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder="Tìm gói cước..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        </div>
+        <div className="flex items-center gap-1.5 self-end sm:self-auto">
+          <Button variant={view === "card" ? "default" : "outline"} size="sm" onClick={() => setView("card")}>
+            Thẻ (Card)
+          </Button>
+          <Button variant={view === "table" ? "default" : "outline"} size="sm" onClick={() => setView("table")}>
+            Bảng (Table)
+          </Button>
+        </div>
+      </div>
+
+      {/* Content */}
+      {loading ? (
+        <div className="flex h-64 items-center justify-center text-muted-foreground">
+          <Loader2 className="mr-2 h-6 w-6 animate-spin" /> Đang tải dữ liệu...
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-dashed text-muted-foreground">
+          <CreditCard className="mb-3 h-10 w-10 opacity-40" />
+          <p className="font-medium">Chưa có gói cước nào</p>
+          <p className="text-xs">Bấm "Tạo gói mới" để cấu hình dịch vụ đầu tiên.</p>
+        </div>
+      ) : view === "card" ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {filtered.map(plan => (
+            <PlanCard key={plan.id} plan={plan}
+              onEdit={p => { setEditing(p); setFormOpen(true); }}
+              onDelete={p => setDeleting(p)} />
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="p-0">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30 hover:bg-muted/30">
                   <TableHead className="text-xs font-semibold uppercase tracking-wider">Tên gói</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider">Giá</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider">Thời hạn</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider">Level</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider">Token</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider">Tin nhắn</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider">Sản phẩm</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider">Tài liệu</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider">Trạng thái</TableHead>
                   <TableHead className="text-right text-xs font-semibold uppercase tracking-wider">Hành động</TableHead>
                 </TableRow>
@@ -369,9 +434,16 @@ export function PlansManager() {
                     <TableCell className="font-semibold">{plan.name}</TableCell>
                     <TableCell className="font-semibold text-primary">{formatVND(plan.price)}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{plan.duration} ngày</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={cn("flex w-max items-center gap-1 text-[10px] px-1.5 py-0", getLevelConfig(plan.level).cls)}>
+                        {(() => { const Ico = getLevelConfig(plan.level).icon; return <Ico className="h-3 w-3" />; })()}
+                        {getLevelConfig(plan.level).label}
+                      </Badge>
+                    </TableCell>
                     <TableCell className="text-sm">{plan.tokenLimit.toLocaleString("vi-VN")}</TableCell>
                     <TableCell className="text-sm">{plan.messageLimit.toLocaleString("vi-VN")}</TableCell>
                     <TableCell className="text-sm">{plan.maxProductAllowed.toLocaleString("vi-VN")}</TableCell>
+                    <TableCell className="text-sm font-medium text-amber-600">{(plan.maxDocumentAllowed ?? plan.maxDocmentAllowed ?? 0).toLocaleString("vi-VN")}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={cn("text-[11px]", STATUS_CFG[plan.status ?? "Inactive"].cls)}>
                         {STATUS_CFG[plan.status ?? "Inactive"].label}
@@ -393,12 +465,14 @@ export function PlansManager() {
                 ))}
               </TableBody>
             </Table>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
-      <PlanFormDialog open={formOpen} editing={editing} onClose={() => setFormOpen(false)} onSaved={fetch} />
-      <DeletePlanDialog item={deleting} onClose={() => setDeleting(null)} onDeleted={fetch} />
-    </>
+      <PlanFormDialog open={formOpen} editing={editing} onClose={() => setFormOpen(false)} onSaved={fetchPlans} />
+      <DeletePlanDialog item={deleting} onClose={() => setDeleting(null)} onDeleted={fetchPlans} />
+    </div>
   );
 }
+
+export default PlansManager;

@@ -68,10 +68,19 @@ export const subscriptionAPI = {
 // ── Payment API (UC-008: Xem usage/billing) ───────────────────────────────────
 
 export const paymentAPI = {
-  /** GET /api/v1/payments — Lấy lịch sử thanh toán */
+  /** GET /api/v1/payments — Lấy lịch sử thanh toán (Admin only) */
   getAll: async (filter?: PaymentFilter): Promise<MainApiWrapper<MainPaginatedList<Payment>>> => {
     const { data } = await mainAxiosClient.get<MainApiWrapper<MainPaginatedList<Payment>>>(
       "/payments",
+      { params: filter }
+    );
+    return data;
+  },
+
+  /** GET /api/v1/payments/user — Lấy lịch sử thanh toán của riêng BO (BO-Get All Payments) */
+  getUserPayments: async (filter?: PaymentFilter): Promise<MainApiWrapper<MainPaginatedList<Payment>>> => {
+    const { data } = await mainAxiosClient.get<MainApiWrapper<MainPaginatedList<Payment>>>(
+      "/payments/user",
       { params: filter }
     );
     return data;
@@ -81,6 +90,14 @@ export const paymentAPI = {
   getByOrderCode: async (orderCode: number): Promise<MainApiWrapper<Payment>> => {
     const { data } = await mainAxiosClient.get<MainApiWrapper<Payment>>(
       `/payments/order/${orderCode}`
+    );
+    return data;
+  },
+
+  /** DELETE /api/v1/payments/cancel/{orderCode} — Hủy đơn thanh toán đang xử lý */
+  cancelPayment: async (orderCode: number): Promise<MainApiWrapper<any>> => {
+    const { data } = await mainAxiosClient.delete<MainApiWrapper<any>>(
+      `/payments/cancel/${orderCode}`
     );
     return data;
   },

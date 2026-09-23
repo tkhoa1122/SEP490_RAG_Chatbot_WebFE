@@ -21,6 +21,22 @@ export interface Business {
   createdAt?: string;
 }
 
+export interface BusinessQuota {
+  id: string;
+  businessSubscriptionId?: string;
+  tokenLimit: number;
+  messageLimit: number;
+  usedTokens: number;
+  usedMessages: number;
+  maxProductAllowed: number;
+  resetDate?: string;
+}
+
+export interface BusinessProfileDto extends Business {
+  currentSubscription?: any; // DTO currentSubscription có thể mở rộng sau nếu cần
+  businessQuota?: BusinessQuota;
+}
+
 export interface BusinessRegistrationCommand {
   businessName: string;
   businessOwnerEmail: string;
@@ -43,6 +59,32 @@ export interface BusinessFilter {
   CreatedFrom?: string;
   PageIndex?: number;
   PageSize?: number;
+}
+
+export interface BusinessConfig {
+  modelTemperature?: number | null;
+  topKDocument?: number | null;
+  rerankingScore?: number | null;
+  systemPrompt?: string | null;
+  fallBackMessage?: string | null;
+  maxOutPutToken?: number | null;
+  lowPriceMaxLimit?: number | null;
+  mediumPriceMinLimit?: number | null;
+  mediumPriceMaxLimit?: number | null;
+  highPriceMinLimit?: number | null;
+}
+
+export interface UpdateBusinessConfigCommand {
+  modelTemperature?: number | null;
+  topKDocument?: number | null;
+  rerankingScore?: number | null;
+  systemPrompt?: string | null;
+  fallBackMessage?: string | null;
+  maxOutPutToken?: number | null;
+  lowPriceMaxLimit?: number | null;
+  mediumPriceMinLimit?: number | null;
+  mediumPriceMaxLimit?: number | null;
+  highPriceMinLimit?: number | null;
 }
 
 // ── Catalog Team ───────────────────────────────────────────────────────────────

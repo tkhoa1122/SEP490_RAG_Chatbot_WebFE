@@ -91,20 +91,33 @@ export function QuotaManager() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [payRes, bizRes] = await Promise.all([
-        paymentAPI.getAll({
-          "Filter.Search": search || undefined,
-          "Filter.PaymentEnums": statusFilter !== "all" ? statusFilter : undefined,
-          "Filter.PageIndex": page,
-          "Filter.PageSize": PAGE_SIZE,
-        }),
-        businessAPI.getAll({ PageSize: 100 }),
-      ]);
-      setPayments(payRes.data?.items ?? []);
-      setTotalCount(payRes.data?.totalItems ?? payRes.data?.totalCount ?? 0);
-      setBusinesses(bizRes.data?.items ?? []);
+      // Gọi song song nhưng bắt lỗi riêng biệt để tránh lỗi 403 của payment làm sập cả page
+      const payPromise = paymentAPI.getAll({
+        "Filter.Search": search || undefined,
+        "Filter.PaymentEnums": statusFilter !== "all" ? statusFilter : undefined,
+        "Filter.PageIndex": page,
+        "Filter.PageSize": PAGE_SIZE,
+        "Filter.CreateAtOrderBy": "desc"
+      } as any).catch(err => {
+        console.warn("Could not fetch payments (403 or other error):", err);
+        return { data: { items: [], totalItems: 0, totalCount: 0 } };
+      });
+
+      const bizPromise = businessAPI.getAll({ "Filter.PageSize": 100 } as any).catch(err => {
+        console.warn("Could not fetch businesses:", err);
+        return { data: { items: [], totalItems: 0, totalCount: 0 } };
+      });
+
+      const [payRes, bizRes] = await Promise.all([payPromise, bizPromise]);
+      
+      const payList = payRes?.data?.items ?? [];
+      payList.sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      
+      setPayments(payList);
+      setTotalCount(payRes?.data?.totalItems ?? payRes?.data?.totalCount ?? 0);
+      setBusinesses(bizRes?.data?.items ?? []);
     } catch (err: any) {
-      toast.error("Không thể tải dữ liệu quota");
+      toast.error("Đã xảy ra lỗi khi tải dữ liệu");
     } finally {
       setLoading(false);
     }
@@ -234,7 +247,25 @@ export function QuotaManager() {
                   </TableCell>
                 </TableRow>
               ) : (
-                payments.map((payment) => (
+                payments.map((payment) => {
+                  const anyPay = payment as any;
+                  // Thử lấy ID từ mọi field có thể
+                  const busId = payment.businessId || anyPay.tenantId || anyPay.business?.id || anyPay.bussiness?.id || anyPay.tenant?.id;
+                  const businessObj = busId ? businesses.find(b => b.id === busId) : undefined;
+                  
+                  // Thử lấy Tên từ mọi field có thể
+                  const busNameDisplay = businessObj?.businessName || 
+                    anyPay.businessName || 
+                    anyPay.business?.businessName || 
+                    anyPay.business?.name || 
+                    anyPay.bussiness?.businessName || 
+                    anyPay.bussiness?.name || 
+                    anyPay.tenantName || 
+                    (busId ? busId.slice(0, 8) + "..." : "—");
+                    
+                  const planNameDisplay = payment.subscriptionName || anyPay.subscriptionPlanName || anyPay.subscriptionPlan?.name || anyPay.planName || anyPay.description || (payment.amount === 0 ? "Gói Cơ Bản" : "—");
+
+                  return (
                   <Fragment key={payment.id}>
                     <TableRow key={payment.id}
                       className="group cursor-pointer hover:bg-muted/30"
@@ -245,15 +276,14 @@ export function QuotaManager() {
                             ? <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" />
                             : <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />}
                           <span className="text-sm font-medium">
-                            {businesses.find(b => b.id === payment.businessId)?.businessName
-                              ?? (payment.businessId ? payment.businessId.slice(0, 8) + "..." : "—")}
+                            {busNameDisplay}
                           </span>
                         </div>
                       </TableCell>
                       <TableCell>
                         <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{payment.orderCode ?? "—"}</code>
                       </TableCell>
-                      <TableCell className="text-sm">{payment.subscriptionName ?? "—"}</TableCell>
+                      <TableCell className="text-sm">{planNameDisplay}</TableCell>
                       <TableCell>
                         <span className="text-sm font-semibold">
                           {payment.amount != null ? `₫${payment.amount.toLocaleString("vi-VN")}` : "—"}
@@ -309,7 +339,7 @@ export function QuotaManager() {
                       </TableRow>
                     )}
                   </Fragment>
-                ))
+                )})
               )}
             </TableBody>
           </Table>
