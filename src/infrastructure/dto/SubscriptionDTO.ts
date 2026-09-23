@@ -20,6 +20,7 @@ export interface Subscription {
   maxProductAllowed: number;
   maxDocumentAllowed?: number;
   maxDocmentAllowed?: number;
+  level?: number;
   status?: StatusEnums;
   createdAt?: string;
 }
@@ -34,6 +35,7 @@ export interface SubscriptionAddCommand {
   maxProductAllowed: number;
   maxDocumentAllowed?: number;
   maxDocmentAllowed?: number;
+  level: number;
 }
 
 export interface SubscriptionUpdateCommand extends SubscriptionAddCommand {}

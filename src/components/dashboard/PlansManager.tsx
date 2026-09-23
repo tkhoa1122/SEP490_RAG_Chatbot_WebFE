@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Plus, Pencil, Trash2, Search, CreditCard, Loader2, RefreshCw,
   Zap, MessageSquare, Package, Clock, DollarSign, FileText,
+  Crown, Star, ShieldCheck, Box
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +35,13 @@ const STATUS_CFG: Record<StatusEnums, { label: string; cls: string }> = {
 
 const formatVND = (n: number) => `₫${n.toLocaleString("vi-VN")}`;
 
+const getLevelConfig = (level: number = 0) => {
+  if (level >= 3) return { label: `Level ${level} (VIP)`, icon: Crown, cls: "bg-amber-100 text-amber-700 border-amber-300" };
+  if (level === 2) return { label: `Level ${level} (Pro)`, icon: ShieldCheck, cls: "bg-violet-100 text-violet-700 border-violet-300" };
+  if (level === 1) return { label: `Level ${level} (Standard)`, icon: Star, cls: "bg-blue-100 text-blue-700 border-blue-300" };
+  return { label: `Level ${level} (Basic)`, icon: Box, cls: "bg-slate-100 text-slate-700 border-slate-300" };
+};
+
 // ── Plan Detail Card ─────────────────────────────────────────────────────────
 
 function PlanCard({ plan, onEdit, onDelete }: {
@@ -46,14 +54,20 @@ function PlanCard({ plan, onEdit, onDelete }: {
       plan.status === "Active" ? "border-primary/20" : "opacity-70")}>
       <CardContent className="flex flex-col gap-4 pt-5">
         {/* Header */}
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-lg font-bold text-foreground">{plan.name}</p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-lg font-bold text-foreground break-words">{plan.name}</p>
+              <Badge variant="outline" className={cn("flex shrink-0 items-center gap-1 text-[10px] px-1.5 py-0 whitespace-nowrap", getLevelConfig(plan.level).cls)}>
+                {(() => { const Ico = getLevelConfig(plan.level).icon; return <Ico className="h-3 w-3" />; })()}
+                {getLevelConfig(plan.level).label}
+              </Badge>
+            </div>
             {plan.description && (
-              <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">{plan.description}</p>
+              <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{plan.description}</p>
             )}
           </div>
-          <Badge variant="outline" className={cn("shrink-0", STATUS_CFG[plan.status ?? "Inactive"].cls)}>
+          <Badge variant="outline" className={cn("shrink-0 whitespace-nowrap", STATUS_CFG[plan.status ?? "Inactive"].cls)}>
             {STATUS_CFG[plan.status ?? "Inactive"].label}
           </Badge>
         </div>
@@ -113,9 +127,10 @@ interface PlanFormState {
   messageLimit: number;
   maxProductAllowed: number;
   maxDocumentAllowed: number;
+  level: number;
 }
 
-const EMPTY: PlanFormState = { name: "", description: "", price: 0, duration: 30, tokenLimit: 0, messageLimit: 0, maxProductAllowed: 0, maxDocumentAllowed: 10 };
+const EMPTY: PlanFormState = { name: "", description: "", price: 0, duration: 30, tokenLimit: 0, messageLimit: 0, maxProductAllowed: 0, maxDocumentAllowed: 10, level: 0 };
 
 function PlanFormDialog({ open, editing, onClose, onSaved }: {
   open: boolean;
@@ -137,6 +152,7 @@ function PlanFormDialog({ open, editing, onClose, onSaved }: {
         messageLimit: editing.messageLimit,
         maxProductAllowed: editing.maxProductAllowed,
         maxDocumentAllowed: editing.maxDocumentAllowed ?? editing.maxDocmentAllowed ?? 10,
+        level: editing.level ?? 0,
       });
     } else {
       setForm(EMPTY);
@@ -165,6 +181,7 @@ function PlanFormDialog({ open, editing, onClose, onSaved }: {
         ...form,
         maxDocumentAllowed: form.maxDocumentAllowed,
         maxDocmentAllowed: form.maxDocumentAllowed, // Gửi cả 2 trường để tương thích BE
+        level: form.level,
       };
       if (editing) {
         await subscriptionAPI.update(editing.id, body);
@@ -211,6 +228,36 @@ function PlanFormDialog({ open, editing, onClose, onSaved }: {
           </div>
           {numField("Giá (VNĐ) *", "price", DollarSign, "₫")}
           {numField("Thời hạn (ngày) *", "duration", Clock, "ngày")}
+          
+          {/* Level Selector */}
+          <div className="col-span-2 space-y-1.5 mt-2">
+            <label className="text-sm font-medium">Cấp độ gói (Level) *</label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[0, 1, 2, 3].map((lvl) => {
+                const cfg = getLevelConfig(lvl);
+                const Icon = cfg.icon;
+                const isSelected = form.level === lvl;
+                return (
+                  <div
+                    key={lvl}
+                    onClick={() => setForm(f => ({ ...f, level: lvl }))}
+                    className={cn(
+                      "cursor-pointer flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 p-3 text-center transition-all",
+                      isSelected 
+                        ? cn("border-primary bg-primary/5", cfg.cls.split(' ')[1]) // extract text color
+                        : "border-muted bg-transparent hover:border-primary/50 text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <Icon className={cn("h-6 w-6 mb-1", isSelected ? "" : "opacity-50")} />
+                    <div className="text-[11px] font-semibold">{cfg.label}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="col-span-2 h-px bg-border my-2"></div>
+
           {numField("Giới hạn Token AI", "tokenLimit", Zap)}
           {numField("Giới hạn Tin nhắn", "messageLimit", MessageSquare)}
           <div className="col-span-1">
@@ -372,6 +419,7 @@ export function PlansManager() {
                   <TableHead className="text-xs font-semibold uppercase tracking-wider">Tên gói</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider">Giá</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider">Thời hạn</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider">Level</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider">Token</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider">Tin nhắn</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider">Sản phẩm</TableHead>
@@ -386,6 +434,12 @@ export function PlansManager() {
                     <TableCell className="font-semibold">{plan.name}</TableCell>
                     <TableCell className="font-semibold text-primary">{formatVND(plan.price)}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{plan.duration} ngày</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={cn("flex w-max items-center gap-1 text-[10px] px-1.5 py-0", getLevelConfig(plan.level).cls)}>
+                        {(() => { const Ico = getLevelConfig(plan.level).icon; return <Ico className="h-3 w-3" />; })()}
+                        {getLevelConfig(plan.level).label}
+                      </Badge>
+                    </TableCell>
                     <TableCell className="text-sm">{plan.tokenLimit.toLocaleString("vi-VN")}</TableCell>
                     <TableCell className="text-sm">{plan.messageLimit.toLocaleString("vi-VN")}</TableCell>
                     <TableCell className="text-sm">{plan.maxProductAllowed.toLocaleString("vi-VN")}</TableCell>
